@@ -1,1 +1,29 @@
 .DS_Store
+
+# Environment variables (SECRETS - NEVER COMMIT)
+.env
+.env.local
+.env*.local
+
+# Supabase
+.supabase
+
+# Next.js
+.next
+out
+*.tsbuildinfo
+
+# Dependencies
+node_modules
+
+# Logs
+*.log
+
+# Testing
+coverage
+
+# Misc
+.vercel
+
+# Supabase CLI temp files
+supabase/.temp/
