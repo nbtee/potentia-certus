@@ -10,7 +10,6 @@
 -- ============================================================================
 
 -- Enable required extensions
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pg_cron";
 
 -- ============================================================================
@@ -19,7 +18,7 @@ CREATE EXTENSION IF NOT EXISTS "pg_cron";
 
 -- Org Hierarchy (National → Region → Team → Individual)
 CREATE TABLE org_hierarchy (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   parent_id UUID REFERENCES org_hierarchy(id) ON DELETE CASCADE,
   hierarchy_level TEXT NOT NULL CHECK (hierarchy_level IN ('national', 'region', 'team', 'individual')),
   name TEXT NOT NULL,
@@ -69,7 +68,7 @@ COMMENT ON TABLE user_profiles IS 'Extended user data linked to Supabase Auth. A
 
 -- Business Rules (revenue blending multipliers, thresholds)
 CREATE TABLE business_rules (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   rule_type TEXT NOT NULL,
   rule_key TEXT NOT NULL,
   rule_value JSONB NOT NULL,
@@ -93,7 +92,7 @@ INSERT INTO business_rules (rule_type, rule_key, rule_value, effective_from, des
 
 -- Consultant Targets (dynamic targets with date ranges)
 CREATE TABLE consultant_targets (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   consultant_id UUID NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
   target_type TEXT NOT NULL, -- 'revenue', 'placements', 'submittals', 'calls', etc.
   target_value NUMERIC NOT NULL,
@@ -113,7 +112,7 @@ COMMENT ON TABLE consultant_targets IS 'Dynamic targets with date ranges, consul
 
 -- Data Assets (measure definitions)
 CREATE TABLE data_assets (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   asset_key TEXT UNIQUE NOT NULL,
   display_name TEXT NOT NULL,
   description TEXT,
@@ -140,7 +139,7 @@ COMMENT ON TABLE data_assets IS '12-15 core measure definitions for AI natural l
 
 -- Candidates
 CREATE TABLE candidates (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   bullhorn_id INTEGER UNIQUE NOT NULL,
   first_name TEXT,
   last_name TEXT,
@@ -162,7 +161,7 @@ CREATE INDEX idx_candidates_name ON candidates(last_name, first_name);
 
 -- Job Orders
 CREATE TABLE job_orders (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   bullhorn_id INTEGER UNIQUE NOT NULL,
   title TEXT NOT NULL,
   consultant_id UUID REFERENCES user_profiles(id) ON DELETE SET NULL,
@@ -183,7 +182,7 @@ CREATE INDEX idx_job_orders_modified ON job_orders(date_last_modified);
 
 -- Client Corporations
 CREATE TABLE client_corporations (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   bullhorn_id INTEGER UNIQUE NOT NULL,
   name TEXT NOT NULL,
   industry TEXT,
@@ -198,7 +197,7 @@ CREATE INDEX idx_client_corporations_name ON client_corporations(name);
 
 -- Submission Status Log (directly ingested from SubmissionHistory - append-only)
 CREATE TABLE submission_status_log (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   bullhorn_submission_id INTEGER NOT NULL,
   bullhorn_submission_history_id INTEGER UNIQUE, -- Maps to SubmissionHistory.id
   candidate_id UUID REFERENCES candidates(id) ON DELETE CASCADE,
@@ -224,7 +223,7 @@ COMMENT ON TABLE submission_status_log IS 'Append-only log of all submission sta
 
 -- Placements (revenue data)
 CREATE TABLE placements (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   bullhorn_id INTEGER UNIQUE NOT NULL,
   consultant_id UUID REFERENCES user_profiles(id) ON DELETE SET NULL,
   candidate_id UUID REFERENCES candidates(id) ON DELETE SET NULL,
@@ -259,7 +258,7 @@ COMMENT ON COLUMN placements.gp_per_hour IS 'For contract: GP per hour (Margin).
 
 -- Activities (calls, meetings, notes)
 CREATE TABLE activities (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   bullhorn_id INTEGER UNIQUE NOT NULL,
   activity_type TEXT NOT NULL, -- Maps to Notes.action (42 distinct types)
   consultant_id UUID REFERENCES user_profiles(id) ON DELETE SET NULL,
@@ -282,7 +281,7 @@ COMMENT ON TABLE activities IS 'All activity records from Notes table (WHERE isD
 
 -- Strategic Referrals (filtered from activities where action='Strategic Referral')
 CREATE TABLE strategic_referrals (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   activity_id UUID REFERENCES activities(id) ON DELETE CASCADE,
   consultant_id UUID REFERENCES user_profiles(id) ON DELETE SET NULL,
   referral_date TIMESTAMPTZ NOT NULL,
@@ -302,7 +301,7 @@ COMMENT ON TABLE strategic_referrals IS 'Strategic referrals extracted from acti
 
 -- Dashboards
 CREATE TABLE dashboards (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   owner_id UUID NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   description TEXT,
@@ -319,7 +318,7 @@ CREATE INDEX idx_dashboards_template ON dashboards(is_template);
 
 -- Dashboard Widgets
 CREATE TABLE dashboard_widgets (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   dashboard_id UUID NOT NULL REFERENCES dashboards(id) ON DELETE CASCADE,
   data_asset_id UUID NOT NULL REFERENCES data_assets(id) ON DELETE CASCADE,
   widget_type TEXT NOT NULL, -- 'single-value', 'time-series-combo', 'categorical-bar', etc.
@@ -341,7 +340,7 @@ COMMENT ON TABLE dashboard_widgets IS 'Widget specs persist in DB. AI builds onc
 
 -- Context Documents (4 markdown docs for AI system prompt)
 CREATE TABLE context_documents (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   document_type TEXT UNIQUE NOT NULL CHECK (document_type IN ('business_vernacular', 'leading_lagging_indicators', 'motivation_framework', 'metric_relationships')),
   title TEXT NOT NULL,
   content TEXT NOT NULL,
@@ -358,7 +357,7 @@ COMMENT ON TABLE context_documents IS '4 markdown context documents injected int
 
 -- Unmatched Terms (AI synonym feedback loop)
 CREATE TABLE unmatched_terms (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_query TEXT NOT NULL,
   unmatched_term TEXT NOT NULL,
   suggested_data_asset_id UUID REFERENCES data_assets(id) ON DELETE SET NULL,
@@ -375,7 +374,7 @@ COMMENT ON TABLE unmatched_terms IS 'Captures terms AI could not map to data ass
 
 -- Ingestion Runs (sync health tracking)
 CREATE TABLE ingestion_runs (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   run_type TEXT NOT NULL, -- 'full_sync', 'incremental_sync', 'reconciliation'
   source_table TEXT NOT NULL,
   target_table TEXT NOT NULL,
@@ -402,7 +401,7 @@ CREATE SCHEMA IF NOT EXISTS private;
 
 -- Audit Log
 CREATE TABLE private.audit_log (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES user_profiles(id) ON DELETE SET NULL,
   action TEXT NOT NULL,
   table_name TEXT,
@@ -422,7 +421,7 @@ COMMENT ON TABLE private.audit_log IS 'Security audit trail for all sensitive op
 
 -- AI Rate Limits
 CREATE TABLE private.ai_rate_limits (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
   request_count INTEGER DEFAULT 1,
   window_start TIMESTAMPTZ NOT NULL,
