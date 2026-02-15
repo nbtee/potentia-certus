@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { AppSidebar } from '@/components/app-sidebar';
-import { AppHeader } from '@/components/app-header';
+import { EnhancedHeader } from '@/components/enhanced-header';
 
 export default async function DashboardLayout({
   children,
@@ -33,17 +33,17 @@ export default async function DashboardLayout({
       : undefined);
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
       {/* Sidebar */}
       <AppSidebar userRole={userRole} />
 
       {/* Main content area */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
-        <AppHeader userEmail={user.email || ''} userName={userName} />
+        <EnhancedHeader userEmail={user.email || ''} userName={userName} />
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
+        <main className="flex-1 overflow-y-auto bg-gradient-to-br from-gray-50 to-gray-100/50 p-6">
           {children}
         </main>
       </div>
