@@ -16,10 +16,13 @@ export async function createClient() {
           cookiesToSet: Array<{ name: string; value: string; options: CookieOptions }>
         ) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
+            console.log('[SERVER] setAll called with', cookiesToSet.length, 'cookies');
+            cookiesToSet.forEach(({ name, value, options }) => {
+              console.log('[SERVER] Setting cookie:', name);
+              cookieStore.set(name, value, options);
+            });
+          } catch (error) {
+            console.error('[SERVER] Error setting cookies:', error);
             // The `setAll` method was called from a Server Component.
             // This can be ignored if you have middleware refreshing
             // user sessions.

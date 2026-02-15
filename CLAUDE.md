@@ -4,6 +4,24 @@
 
 Recruitment Data Intelligence Platform. Ingests activity data from Bullhorn ATS (via **SQL Server staging mirror**), applies revenue blending logic, and uses AI to build dashboard widgets from natural language queries.
 
+## ⚠️ CRITICAL PRE-PRODUCTION REQUIREMENT
+
+**BEFORE PRODUCTION LAUNCH:** The current database security model is simplified for rapid development.
+
+**Current State (Development Only):**
+- All authenticated users can see all data (simplified RLS)
+- Anon key approach with basic Row Level Security
+- Suitable for development and testing ONLY
+
+**Required Before Production:**
+- Switch to proper role-based access control (RBAC)
+- Implement granular RLS policies based on `org_hierarchy` and user roles (consultant, team_lead, manager, admin)
+- Change database access methodology (not anon key approach)
+- Review and harden all security policies
+- Restrict data visibility by hierarchy level
+
+**Stage I (Security Hardening) will address this.**
+
 ## Tech Stack
 
 - **Frontend:** Next.js 15 (App Router), ShadCN/UI, Tailwind CSS v4, Recharts, Nivo, TanStack Table, Framer Motion, react-grid-layout

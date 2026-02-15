@@ -1,7 +1,7 @@
-import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { LogoutButton } from '@/components/logout-button';
+import { AppSidebar } from '@/components/app-sidebar';
+import { AppHeader } from '@/components/app-header';
 
 export default async function DashboardLayout({
   children,
@@ -18,39 +18,35 @@ export default async function DashboardLayout({
     redirect('/login');
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex">
-              <div className="flex-shrink-0 flex items-center">
-                <Link href="/dashboard" className="text-xl font-bold text-blue-600">
-                  Potentia Certus
-                </Link>
-              </div>
-              <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                <Link
-                  href="/dashboard"
-                  className="border-blue-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                >
-                  Dashboard
-                </Link>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-sm text-gray-600">{user.email}</div>
-              <LogoutButton />
-            </div>
-          </div>
-        </div>
-      </nav>
+  // Fetch user profile to get role
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('role, first_name, last_name, display_name')
+    .eq('id', user.id)
+    .single();
 
-      {/* Main content */}
-      <main className="py-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">{children}</div>
-      </main>
+  const userRole = profile?.role || 'consultant';
+  const userName =
+    profile?.display_name ||
+    (profile?.first_name && profile?.last_name
+      ? `${profile.first_name} ${profile.last_name}`
+      : undefined);
+
+  return (
+    <div className="flex h-screen overflow-hidden">
+      {/* Sidebar */}
+      <AppSidebar userRole={userRole} />
+
+      {/* Main content area */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Header */}
+        <AppHeader userEmail={user.email || ''} userName={userName} />
+
+        {/* Page content */}
+        <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

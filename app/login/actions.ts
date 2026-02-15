@@ -16,18 +16,33 @@ export async function login(
     password: formData.get('password') as string,
   };
 
-  const { error } = await supabase.auth.signInWithPassword(data);
+  const { error, data: authData } = await supabase.auth.signInWithPassword(data);
 
   if (error) {
     console.error('Login error:', error);
     return { error: error.message };
   }
 
-  console.log('Login successful, returning success');
+  console.log('Login successful for:', authData.user.email);
+  console.log('Session:', authData.session);
+
+  // Manually set the session since Server Actions don't persist cookies automatically
+  if (authData.session) {
+    const { error: sessionError } = await supabase.auth.setSession({
+      access_token: authData.session.access_token,
+      refresh_token: authData.session.refresh_token,
+    });
+
+    if (sessionError) {
+      console.error('Session error:', sessionError);
+      return { error: 'Failed to establish session' };
+    }
+
+    console.log('Session set successfully');
+  }
+
   revalidatePath('/', 'layout');
-  const result = { success: true };
-  console.log('Returning:', result);
-  return result;
+  redirect('/dashboard');
 }
 
 export async function logout() {

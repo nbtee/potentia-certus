@@ -26,7 +26,7 @@ export function LoginForm() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error);
+        setError(data.error || 'Login failed');
         setLoading(false);
         return;
       }
