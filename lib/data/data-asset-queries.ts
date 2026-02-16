@@ -178,7 +178,10 @@ async function queryCategorical(
   // Determine grouping dimension (default to consultant)
   const dimension = params.dimensions?.[0] || 'consultant';
 
-  let query = supabase.from('activities').select('*');
+  // Select with join to user_profiles to get display names
+  let query = supabase
+    .from('activities')
+    .select('consultant_id, user_profiles(display_name, first_name, last_name)');
 
   // Apply filters
   if (activityTypes.length > 0) {
@@ -197,17 +200,35 @@ async function queryCategorical(
     throw new Error(`Query failed: ${error.message}`);
   }
 
-  // Group and count
-  const grouped = new Map<string, number>();
+  // Group and count by consultant
+  const grouped = new Map<string, { count: number; name: string }>();
 
   for (const row of data || []) {
-    const key = row[`${dimension}_id`] || row[dimension] || 'Unknown';
-    grouped.set(key, (grouped.get(key) || 0) + 1);
+    const consultantId = row.consultant_id;
+    // Supabase returns joined data as an object (not array) for single foreign key relations
+    const profile = Array.isArray(row.user_profiles)
+      ? row.user_profiles[0]
+      : row.user_profiles;
+
+    // Get display name (fallback to first + last name, then "Unknown")
+    const displayName =
+      profile?.display_name ||
+      (profile?.first_name && profile?.last_name
+        ? `${profile.first_name} ${profile.last_name}`
+        : profile?.first_name || profile?.last_name || 'Unknown');
+
+    if (consultantId) {
+      const existing = grouped.get(consultantId) || { count: 0, name: displayName };
+      grouped.set(consultantId, {
+        count: existing.count + 1,
+        name: displayName,
+      });
+    }
   }
 
   // Convert to categories array and sort by value
-  const categories = Array.from(grouped.entries())
-    .map(([label, value]) => ({ label, value }))
+  const categories = Array.from(grouped.values())
+    .map(({ name, count }) => ({ label: name, value: count }))
     .sort((a, b) => b.value - a.value)
     .slice(0, params.limit || 10);
 
