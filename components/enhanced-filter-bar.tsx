@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Calendar, ChevronDown, Building2, Filter, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -129,7 +129,7 @@ export function EnhancedFilterBar({ userRole }: EnhancedFilterBarProps) {
               <Calendar className="mr-2 h-4 w-4 text-gray-500" />
               <SelectValue placeholder="Select period" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-white">
               {dateRanges.map((range) => (
                 <SelectItem key={range.value} value={range.value}>
                   {range.label}
@@ -199,7 +199,7 @@ export function EnhancedFilterBar({ userRole }: EnhancedFilterBarProps) {
               <Building2 className="mr-2 h-4 w-4 text-gray-500" />
               <SelectValue placeholder="Select scope" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-white">
               {hierarchyOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
