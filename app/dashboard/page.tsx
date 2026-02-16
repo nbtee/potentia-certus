@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { DashboardContent } from './dashboard-content';
 import { EnhancedFilterBar } from '@/components/enhanced-filter-bar';
+import { DashboardWrapper } from './dashboard-wrapper';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -19,9 +20,11 @@ export default async function DashboardPage() {
   const userRole = profile?.role || 'consultant';
 
   return (
-    <div className="space-y-6">
-      <EnhancedFilterBar userRole={userRole} />
-      <DashboardContent />
-    </div>
+    <DashboardWrapper>
+      <div className="space-y-6">
+        <EnhancedFilterBar userRole={userRole} />
+        <DashboardContent />
+      </div>
+    </DashboardWrapper>
   );
 }

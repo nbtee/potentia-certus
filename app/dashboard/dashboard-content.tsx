@@ -9,20 +9,11 @@ import {
   TrendingUp,
   UserCheck,
 } from 'lucide-react';
-import { useMemo } from 'react';
+import { useDateRange } from '@/lib/contexts/filter-context';
 
 export function DashboardContent() {
-  // Calculate date range for last 30 days
-  const dateRange = useMemo(() => {
-    const end = new Date();
-    const start = new Date();
-    start.setDate(start.getDate() - 30);
-
-    return {
-      start: start.toISOString().split('T')[0],
-      end: end.toISOString().split('T')[0],
-    };
-  }, []);
+  // Get date range from filter context
+  const dateRange = useDateRange();
 
   return (
     <div className="space-y-6">

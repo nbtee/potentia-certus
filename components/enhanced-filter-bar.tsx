@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar, ChevronDown, Building2, Filter, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,6 +19,7 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
+import { useFilters, calculateDateRange } from '@/lib/contexts/filter-context';
 
 interface EnhancedFilterBarProps {
   userRole: 'consultant' | 'team_lead' | 'manager' | 'admin';
@@ -34,15 +35,20 @@ const dateRanges = [
 ];
 
 export function EnhancedFilterBar({ userRole }: EnhancedFilterBarProps) {
-  const [dateRange, setDateRange] = useState('30d');
-  const [hierarchyScope, setHierarchyScope] = useState('my-team');
+  const { filters, setDateRange, setHierarchyScope, resetFilters } = useFilters();
+
+  // Local state for UI controls
+  const [dateRangePreset, setDateRangePreset] = useState('30d');
+  const [hierarchyScope, setLocalHierarchyScope] = useState<'self' | 'my-team' | 'region' | 'national'>('my-team');
   const [customStartDate, setCustomStartDate] = useState<Date | undefined>();
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
   const [isCustomOpen, setIsCustomOpen] = useState(false);
   const [filtersApplied, setFiltersApplied] = useState(false);
 
-  const getHierarchyOptions = () => {
-    const options = [{ label: 'My Performance', value: 'self' }];
+  const getHierarchyOptions = (): Array<{ label: string; value: 'self' | 'my-team' | 'region' | 'national' }> => {
+    const options: Array<{ label: string; value: 'self' | 'my-team' | 'region' | 'national' }> = [
+      { label: 'My Performance', value: 'self' }
+    ];
 
     if (userRole === 'team_lead' || userRole === 'manager' || userRole === 'admin') {
       options.push({ label: 'My Team', value: 'my-team' });
@@ -62,16 +68,34 @@ export function EnhancedFilterBar({ userRole }: EnhancedFilterBarProps) {
   const hierarchyOptions = getHierarchyOptions();
 
   const handleApplyFilters = () => {
+    // Calculate actual date range from preset or custom dates
+    let dateRange;
+    if (dateRangePreset === 'custom' && customStartDate && customEndDate) {
+      dateRange = {
+        start: customStartDate.toISOString().split('T')[0],
+        end: customEndDate.toISOString().split('T')[0],
+      };
+    } else {
+      dateRange = calculateDateRange(dateRangePreset);
+    }
+
+    // Apply filters to context
+    setDateRange(dateRange);
+    setHierarchyScope(hierarchyScope);
     setFiltersApplied(true);
-    // Apply filter logic here
   };
 
   const handleClearFilters = () => {
-    setDateRange('30d');
-    setHierarchyScope('my-team');
+    setDateRangePreset('30d');
+    setLocalHierarchyScope('my-team');
     setCustomStartDate(undefined);
     setCustomEndDate(undefined);
     setFiltersApplied(false);
+    resetFilters();
+  };
+
+  const handleHierarchyScopeChange = (value: string) => {
+    setLocalHierarchyScope(value as 'self' | 'my-team' | 'region' | 'national');
   };
 
   return (
@@ -100,7 +124,7 @@ export function EnhancedFilterBar({ userRole }: EnhancedFilterBarProps) {
           <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
             Time Period
           </label>
-          <Select value={dateRange} onValueChange={setDateRange}>
+          <Select value={dateRangePreset} onValueChange={setDateRangePreset}>
             <SelectTrigger className="h-9 w-[180px] border-gray-200 bg-white hover:bg-gray-50 transition-colors">
               <Calendar className="mr-2 h-4 w-4 text-gray-500" />
               <SelectValue placeholder="Select period" />
@@ -117,7 +141,7 @@ export function EnhancedFilterBar({ userRole }: EnhancedFilterBarProps) {
 
         {/* Custom Date Picker */}
         <AnimatePresence>
-          {dateRange === 'custom' && (
+          {dateRangePreset === 'custom' && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95, x: -20 }}
               animate={{ opacity: 1, scale: 1, x: 0 }}
@@ -170,7 +194,7 @@ export function EnhancedFilterBar({ userRole }: EnhancedFilterBarProps) {
           <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
             Scope
           </label>
-          <Select value={hierarchyScope} onValueChange={setHierarchyScope}>
+          <Select value={hierarchyScope} onValueChange={handleHierarchyScopeChange}>
             <SelectTrigger className="h-9 w-[180px] border-gray-200 bg-white hover:bg-gray-50 transition-colors">
               <Building2 className="mr-2 h-4 w-4 text-gray-500" />
               <SelectValue placeholder="Select scope" />
