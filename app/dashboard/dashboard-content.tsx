@@ -2,6 +2,7 @@
 
 import { KPICard } from '@/components/widgets/kpi-card';
 import { TimeSeriesChart } from '@/components/widgets/time-series-chart';
+import { BarChart } from '@/components/widgets/bar-chart';
 import {
   Phone,
   Users,
@@ -99,6 +100,28 @@ export function DashboardContent() {
           chartType="line"
           color="#f59e0b"
           dateRange={dateRange}
+        />
+      </div>
+
+      {/* Bar Charts - Rankings and Comparisons */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <BarChart
+          assetKey="candidate_call_count"
+          title="Top Performers: Candidate Calls"
+          dimension="consultant"
+          orientation="vertical"
+          color="#3b82f6"
+          dateRange={dateRange}
+          limit={8}
+        />
+        <BarChart
+          assetKey="bd_call_count"
+          title="Top Performers: BD Calls"
+          dimension="consultant"
+          orientation="vertical"
+          color="#8b5cf6"
+          dateRange={dateRange}
+          limit={8}
         />
       </div>
     </div>
