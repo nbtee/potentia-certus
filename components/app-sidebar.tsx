@@ -11,6 +11,7 @@ import {
   Database,
   TrendingUp,
   Sparkles,
+  Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -33,6 +34,12 @@ const navigation: NavItem[] = [
     name: 'Dashboard',
     href: '/dashboard',
     icon: LayoutDashboard,
+    roles: ['consultant', 'team_lead', 'manager', 'admin'],
+  },
+  {
+    name: 'My Dashboards',
+    href: '/dashboards',
+    icon: Layers,
     roles: ['consultant', 'team_lead', 'manager', 'admin'],
   },
   {
