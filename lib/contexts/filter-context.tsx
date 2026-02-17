@@ -7,7 +7,7 @@
 
 'use client';
 
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 export interface DateRange {
@@ -15,9 +15,11 @@ export interface DateRange {
   end: string;
 }
 
+export type HierarchyScope = 'self' | 'my-team' | 'region' | 'national';
+
 export interface FilterState {
   dateRange: DateRange;
-  hierarchyScope: 'self' | 'my-team' | 'region' | 'national';
+  hierarchyScope: HierarchyScope;
   consultantId?: string;
   teamId?: string;
   regionId?: string;
@@ -26,7 +28,7 @@ export interface FilterState {
 interface FilterContextType {
   filters: FilterState;
   setDateRange: (range: DateRange) => void;
-  setHierarchyScope: (scope: FilterState['hierarchyScope']) => void;
+  setHierarchyScope: (scope: HierarchyScope) => void;
   setConsultantId: (id: string | undefined) => void;
   resetFilters: () => void;
 }
@@ -34,7 +36,7 @@ interface FilterContextType {
 const FilterContext = createContext<FilterContextType | undefined>(undefined);
 
 // Helper to calculate date range from preset
-function calculateDateRange(preset: string): DateRange {
+export function calculateDateRange(preset: string): DateRange {
   const end = new Date();
   const start = new Date();
 
@@ -79,55 +81,59 @@ export function FilterProvider({ children }: { children: ReactNode }) {
   const [filters, setFilters] = useState<FilterState>(() => {
     const urlDateStart = searchParams.get('dateStart');
     const urlDateEnd = searchParams.get('dateEnd');
-    const urlScope = searchParams.get('scope') as FilterState['hierarchyScope'];
+    const urlScope = searchParams.get('scope');
+    const validScopes: HierarchyScope[] = ['self', 'my-team', 'region', 'national'];
+    const scope = validScopes.includes(urlScope as HierarchyScope)
+      ? (urlScope as HierarchyScope)
+      : DEFAULT_FILTERS.hierarchyScope;
 
     return {
       dateRange: urlDateStart && urlDateEnd
         ? { start: urlDateStart, end: urlDateEnd }
         : DEFAULT_FILTERS.dateRange,
-      hierarchyScope: urlScope || DEFAULT_FILTERS.hierarchyScope,
+      hierarchyScope: scope,
     };
   });
 
-  // Update URL params when filters change
-  const updateUrlParams = useCallback((newFilters: FilterState) => {
+  // Sync URL params whenever filters change (as a side effect, not during render)
+  const isInitialMount = useRef(true);
+  useEffect(() => {
+    // Skip the initial mount — URL already has the right params (or defaults)
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
     const params = new URLSearchParams(searchParams.toString());
 
-    params.set('dateStart', newFilters.dateRange.start);
-    params.set('dateEnd', newFilters.dateRange.end);
-    params.set('scope', newFilters.hierarchyScope);
+    params.set('dateStart', filters.dateRange.start);
+    params.set('dateEnd', filters.dateRange.end);
+    params.set('scope', filters.hierarchyScope);
 
-    if (newFilters.consultantId) {
-      params.set('consultantId', newFilters.consultantId);
+    if (filters.consultantId) {
+      params.set('consultantId', filters.consultantId);
     } else {
       params.delete('consultantId');
     }
 
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [pathname, router, searchParams]);
+  }, [filters, pathname, router, searchParams]);
 
   const setDateRange = useCallback((range: DateRange) => {
-    const newFilters = { ...filters, dateRange: range };
-    setFilters(newFilters);
-    updateUrlParams(newFilters);
-  }, [filters, updateUrlParams]);
+    setFilters((prev) => ({ ...prev, dateRange: range }));
+  }, []);
 
-  const setHierarchyScope = useCallback((scope: FilterState['hierarchyScope']) => {
-    const newFilters = { ...filters, hierarchyScope: scope };
-    setFilters(newFilters);
-    updateUrlParams(newFilters);
-  }, [filters, updateUrlParams]);
+  const setHierarchyScope = useCallback((scope: HierarchyScope) => {
+    setFilters((prev) => ({ ...prev, hierarchyScope: scope }));
+  }, []);
 
   const setConsultantId = useCallback((id: string | undefined) => {
-    const newFilters = { ...filters, consultantId: id };
-    setFilters(newFilters);
-    updateUrlParams(newFilters);
-  }, [filters, updateUrlParams]);
+    setFilters((prev) => ({ ...prev, consultantId: id }));
+  }, []);
 
   const resetFilters = useCallback(() => {
     setFilters(DEFAULT_FILTERS);
-    updateUrlParams(DEFAULT_FILTERS);
-  }, [updateUrlParams]);
+  }, []);
 
   return (
     <FilterContext.Provider
@@ -157,6 +163,3 @@ export function useDateRange() {
   const { filters } = useFilters();
   return filters.dateRange;
 }
-
-// Helper to convert preset to date range (for external use)
-export { calculateDateRange };

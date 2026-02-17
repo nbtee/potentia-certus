@@ -39,9 +39,6 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  console.log('[MIDDLEWARE]', request.nextUrl.pathname, 'User:', user?.email || 'none');
-  console.log('[MIDDLEWARE] Cookies:', request.cookies.getAll().map(c => c.name));
-
   if (
     !user &&
     !request.nextUrl.pathname.startsWith('/login') &&
@@ -49,8 +46,6 @@ export async function updateSession(request: NextRequest) {
     !request.nextUrl.pathname.startsWith('/api/auth') &&
     request.nextUrl.pathname !== '/'
   ) {
-    // No user, potentially respond by redirecting the user to the login page
-    console.log('[MIDDLEWARE] Redirecting to /login - no user found');
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);

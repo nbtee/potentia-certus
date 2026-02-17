@@ -18,12 +18,16 @@ export default async function DashboardLayout({
     redirect('/login');
   }
 
-  // Fetch user profile to get role
-  const { data: profile } = await supabase
+  // Fetch user profile to get role — handle missing profile gracefully
+  const { data: profile, error: profileError } = await supabase
     .from('user_profiles')
     .select('role, first_name, last_name, display_name')
     .eq('id', user.id)
     .single();
+
+  if (profileError) {
+    console.error('Failed to load user profile:', profileError.message);
+  }
 
   const userRole = profile?.role || 'consultant';
   const userName =

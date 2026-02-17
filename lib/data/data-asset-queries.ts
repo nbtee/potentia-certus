@@ -6,6 +6,7 @@
  */
 
 import { createClient } from '@/lib/supabase/client';
+import type { DataAsset } from '@/lib/data-assets/types';
 import type {
   DataAssetParams,
   DataAssetResponse,
@@ -14,6 +15,8 @@ import type {
   TimeSeries,
   Tabular,
 } from './shape-contracts';
+
+type SupabaseClient = ReturnType<typeof createClient>;
 
 // ============================================================================
 // Main Query Function
@@ -36,11 +39,13 @@ export async function queryDataAsset(
     throw new Error(`Data asset not found: ${params.assetKey}`);
   }
 
+  const typedAsset = asset as DataAsset;
+
   // Verify the requested shape is supported
-  if (!asset.output_shapes.includes(params.shape)) {
+  if (!typedAsset.output_shapes.includes(params.shape)) {
     throw new Error(
       `Shape "${params.shape}" not supported for asset "${params.assetKey}". ` +
-        `Supported shapes: ${asset.output_shapes.join(', ')}`
+        `Supported shapes: ${typedAsset.output_shapes.join(', ')}`
     );
   }
 
@@ -48,16 +53,16 @@ export async function queryDataAsset(
   let data;
   switch (params.shape) {
     case 'single_value':
-      data = await querySingleValue(supabase, asset, params);
+      data = await querySingleValue(supabase, typedAsset, params);
       break;
     case 'categorical':
-      data = await queryCategorical(supabase, asset, params);
+      data = await queryCategorical(supabase, typedAsset, params);
       break;
     case 'time_series':
-      data = await queryTimeSeries(supabase, asset, params);
+      data = await queryTimeSeries(supabase, typedAsset, params);
       break;
     case 'tabular':
-      data = await queryTabular(supabase, asset, params);
+      data = await queryTabular(supabase, typedAsset, params);
       break;
     default:
       throw new Error(`Shape not implemented: ${params.shape}`);
@@ -71,7 +76,7 @@ export async function queryDataAsset(
       assetKey: params.assetKey,
       queryTime,
       recordCount: getRecordCount(data),
-      cached: false, // TODO: Implement caching
+      cached: false,
       generatedAt: new Date().toISOString(),
     },
   };
@@ -82,12 +87,11 @@ export async function queryDataAsset(
 // ============================================================================
 
 async function querySingleValue(
-  supabase: ReturnType<typeof createClient>,
-  asset: any,
+  supabase: SupabaseClient,
+  asset: DataAsset,
   params: DataAssetParams
 ): Promise<SingleValue> {
-  const metadata = asset.metadata;
-  const activityTypes = metadata.activity_types || [];
+  const activityTypes = (asset.metadata as Record<string, unknown>)?.activity_types as string[] ?? [];
 
   // Build the query
   let query = supabase
@@ -116,7 +120,7 @@ async function querySingleValue(
   }
 
   // Calculate comparison if we have a date range
-  let comparison;
+  let comparison: SingleValue['comparison'];
   if (params.filters?.dateRange) {
     const { start, end } = params.filters.dateRange;
     const startDate = new Date(start);
@@ -155,11 +159,12 @@ async function querySingleValue(
         value: Math.abs(change),
         label: `vs previous ${daysDiff} days`,
         direction: change > 0 ? 'up' : change < 0 ? 'down' : 'neutral',
-      } as const;
+      };
     }
   }
 
   return {
+    _shape: 'single_value',
     value: count || 0,
     label: asset.display_name,
     format: 'number',
@@ -168,15 +173,11 @@ async function querySingleValue(
 }
 
 async function queryCategorical(
-  supabase: ReturnType<typeof createClient>,
-  asset: any,
+  supabase: SupabaseClient,
+  asset: DataAsset,
   params: DataAssetParams
 ): Promise<Categorical> {
-  const metadata = asset.metadata;
-  const activityTypes = metadata.activity_types || [];
-
-  // Determine grouping dimension (default to consultant)
-  const dimension = params.dimensions?.[0] || 'consultant';
+  const activityTypes = (asset.metadata as Record<string, unknown>)?.activity_types as string[] ?? [];
 
   // Select with join to user_profiles to get display names
   let query = supabase
@@ -233,18 +234,18 @@ async function queryCategorical(
     .slice(0, params.limit || 10);
 
   return {
+    _shape: 'categorical',
     categories,
     format: 'number',
   };
 }
 
 async function queryTimeSeries(
-  supabase: ReturnType<typeof createClient>,
-  asset: any,
+  supabase: SupabaseClient,
+  asset: DataAsset,
   params: DataAssetParams
 ): Promise<TimeSeries> {
-  const metadata = asset.metadata;
-  const activityTypes = metadata.activity_types || [];
+  const activityTypes = (asset.metadata as Record<string, unknown>)?.activity_types as string[] ?? [];
 
   let query = supabase.from('activities').select('activity_date');
 
@@ -285,6 +286,7 @@ async function queryTimeSeries(
   }));
 
   return {
+    _shape: 'time_series',
     series: [
       {
         name: asset.display_name,
@@ -297,12 +299,11 @@ async function queryTimeSeries(
 }
 
 async function queryTabular(
-  supabase: ReturnType<typeof createClient>,
-  asset: any,
+  supabase: SupabaseClient,
+  asset: DataAsset,
   params: DataAssetParams
 ): Promise<Tabular> {
-  const metadata = asset.metadata;
-  const activityTypes = metadata.activity_types || [];
+  const activityTypes = (asset.metadata as Record<string, unknown>)?.activity_types as string[] ?? [];
 
   let query = supabase.from('activities').select('*', { count: 'exact' });
 
@@ -333,6 +334,7 @@ async function queryTabular(
   }
 
   return {
+    _shape: 'tabular',
     columns: [
       { key: 'activity_date', label: 'Date', type: 'date', format: 'date' },
       { key: 'activity_type', label: 'Type', type: 'string' },
@@ -353,10 +355,15 @@ async function queryTabular(
 // Helper Functions
 // ============================================================================
 
-function getRecordCount(data: any): number {
-  if ('value' in data) return 1;
-  if ('categories' in data) return data.categories.length;
-  if ('series' in data) return data.series[0]?.data.length || 0;
-  if ('rows' in data) return data.rows.length;
-  return 0;
+function getRecordCount(data: SingleValue | Categorical | TimeSeries | Tabular): number {
+  switch (data._shape) {
+    case 'single_value':
+      return 1;
+    case 'categorical':
+      return data.categories.length;
+    case 'time_series':
+      return data.series[0]?.data.length || 0;
+    case 'tabular':
+      return data.rows.length;
+  }
 }

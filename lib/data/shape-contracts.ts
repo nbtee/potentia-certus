@@ -3,10 +3,12 @@
  *
  * Widgets consume data in standardized shapes. Data assets produce data
  * in these shapes. This decouples widgets from data sources.
+ *
+ * Each shape has a `_shape` discriminator field for reliable type narrowing.
  */
 
 // ============================================================================
-// Core Shape Types
+// Core Shape Types (Discriminated Union)
 // ============================================================================
 
 /**
@@ -14,6 +16,7 @@
  * Used for: KPI cards, gauges, simple metrics
  */
 export interface SingleValue {
+  _shape: 'single_value';
   value: number;
   label: string;
   format?: 'number' | 'currency' | 'percentage' | 'duration';
@@ -29,6 +32,7 @@ export interface SingleValue {
  * Used for: Bar charts, pie charts, donut charts
  */
 export interface Categorical {
+  _shape: 'categorical';
   categories: Array<{
     label: string;
     value: number;
@@ -42,6 +46,7 @@ export interface Categorical {
  * Used for: Line charts, area charts, sparklines
  */
 export interface TimeSeries {
+  _shape: 'time_series';
   series: Array<{
     name: string;
     data: Array<{
@@ -58,6 +63,7 @@ export interface TimeSeries {
  * Used for: Funnel charts, conversion indicators
  */
 export interface FunnelStages {
+  _shape: 'funnel_stages';
   stages: Array<{
     name: string;
     value: number;
@@ -71,6 +77,7 @@ export interface FunnelStages {
  * Used for: Heatmaps, correlation matrices
  */
 export interface Matrix {
+  _shape: 'matrix';
   rows: string[];
   columns: string[];
   values: number[][];
@@ -82,6 +89,7 @@ export interface Matrix {
  * Used for: Data tables, leaderboards
  */
 export interface Tabular<T = Record<string, unknown>> {
+  _shape: 'tabular';
   columns: Array<{
     key: string;
     label: string;
@@ -148,29 +156,29 @@ export interface DataAssetResponse<T extends DataShape = DataShape> {
 }
 
 // ============================================================================
-// Type Guards
+// Type Guards (using discriminator field)
 // ============================================================================
 
 export function isSingleValue(data: DataShape): data is SingleValue {
-  return 'value' in data && 'label' in data;
+  return data._shape === 'single_value';
 }
 
 export function isCategorical(data: DataShape): data is Categorical {
-  return 'categories' in data && Array.isArray(data.categories);
+  return data._shape === 'categorical';
 }
 
 export function isTimeSeries(data: DataShape): data is TimeSeries {
-  return 'series' in data && Array.isArray(data.series);
+  return data._shape === 'time_series';
 }
 
 export function isFunnelStages(data: DataShape): data is FunnelStages {
-  return 'stages' in data && Array.isArray(data.stages);
+  return data._shape === 'funnel_stages';
 }
 
 export function isMatrix(data: DataShape): data is Matrix {
-  return 'rows' in data && 'columns' in data && 'values' in data;
+  return data._shape === 'matrix';
 }
 
 export function isTabular(data: DataShape): data is Tabular {
-  return 'columns' in data && 'rows' in data && Array.isArray(data.columns);
+  return data._shape === 'tabular';
 }

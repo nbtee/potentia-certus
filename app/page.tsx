@@ -1,6 +1,16 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
 
-export default function HomePage() {
+export default async function HomePage() {
+  // Redirect authenticated users straight to dashboard
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user) {
+    redirect('/dashboard');
+  }
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="max-w-2xl mx-auto text-center px-4">
@@ -21,10 +31,10 @@ export default function HomePage() {
             Sign In
           </Link>
           <Link
-            href="/dashboard"
+            href="/signup"
             className="px-6 py-3 bg-white text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-medium"
           >
-            View Dashboard
+            Create Account
           </Link>
         </div>
       </div>
