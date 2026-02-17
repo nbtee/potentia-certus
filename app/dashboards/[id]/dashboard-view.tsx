@@ -25,6 +25,7 @@ import {
   X,
 } from 'lucide-react';
 import Link from 'next/link';
+import { ChatTrigger } from '@/components/ai-chat/chat-trigger';
 
 interface DashboardViewProps {
   initialDashboard: DashboardWithWidgets;
@@ -233,6 +234,9 @@ function DashboardViewInner({
           onWidgetAdded={handleWidgetAdded}
         />
       )}
+
+      {/* AI Chat */}
+      <ChatTrigger dashboardId={dashboard.id} />
     </div>
   );
 }

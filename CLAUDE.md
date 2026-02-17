@@ -113,7 +113,7 @@ See the Setup & Build Guide for full stage details with test criteria.
 
 ## Current Status
 
-**Overall: ~70% complete** (7 of 10 stages done)
+**Overall: ~80% complete** (8 of 10 stages done)
 
 | Stage | Name | Status |
 |-------|------|--------|
@@ -124,7 +124,7 @@ See the Setup & Build Guide for full stage details with test criteria.
 | E | Connect Widgets to Data | ✅ Complete (seed data) |
 | F | Dashboard Persistence | ✅ Complete |
 | G | Admin UI (9 sections) | ✅ Complete |
-| H | AI Orchestration | ❌ Not started |
+| H | AI Orchestration | ✅ Complete |
 | I | Security Hardening | ⚠️ Partial (25%) |
 | J | Performance Tuning | ❌ Not started |
 
@@ -137,10 +137,12 @@ See the Setup & Build Guide for full stage details with test criteria.
 - Filter context (date range, hierarchy scope) wired to all widgets
 - Admin UI: Users (CRUD + CSV import), Hierarchy, Rules, Targets (individual + bulk), Data Assets, Context Docs (versioned), Synonyms, Ingestion Health, Audit Log (filterable + CSV export)
 - Role gate: admin full access, manager read-only, consultant/team_lead blocked
+- AI Chat: floating trigger on dashboards, slide-out panel, Builder mode (widget proposals with approve/reject), Answer mode (direct data answers)
+- AI rate limiting (10 req/min per user), unmatched term logging, context-aware system prompt
 
 **Critical blocker:** SQL Server credentials needed for Stage D (real Bullhorn data).
 
-**Next stages:** H (AI Orchestration) and D (when credentials arrive) can run in parallel.
+**Next stages:** I (Security Hardening) and D (when credentials arrive) can run in parallel.
 
 **Inputs still needed from stakeholder:**
 - SQL Server connection details + network accessibility
