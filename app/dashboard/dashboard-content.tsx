@@ -1,9 +1,19 @@
 'use client';
 
-import { KPICard } from '@/components/widgets/kpi-card';
-import { TimeSeriesChart } from '@/components/widgets/time-series-chart';
-import { BarChart } from '@/components/widgets/bar-chart';
-import { WidgetErrorBoundary } from '@/components/widgets/widget-error-boundary';
+import {
+  KPICard,
+  TimeSeriesChart,
+  BarChart,
+  DonutChart,
+  TargetGauge,
+  AnimatedLeaderboard,
+  TimeSeriesCombo,
+  ConversionIndicator,
+  DataTable,
+  Heatmap,
+  StackedBarChart,
+  WidgetErrorBoundary,
+} from '@/components/widgets';
 import {
   Phone,
   Users,
@@ -29,7 +39,9 @@ export function DashboardContent() {
         </p>
       </div>
 
-      {/* KPI Cards */}
+      {/* ================================================================ */}
+      {/* KPI Cards (single_value shape) */}
+      {/* ================================================================ */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         <WidgetErrorBoundary fallbackTitle="Candidate Calls failed">
           <KPICard
@@ -81,7 +93,97 @@ export function DashboardContent() {
         </WidgetErrorBoundary>
       </div>
 
-      {/* Time Series Charts */}
+      {/* ================================================================ */}
+      {/* Conversion Indicators (single_value shape, direct-value mode) */}
+      {/* ================================================================ */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <WidgetErrorBoundary fallbackTitle="Conversion failed">
+          <ConversionIndicator
+            title="Submit → Review"
+            fromLabel="Submitted"
+            toLabel="Review"
+            value={0.667}
+            previousValue={0.62}
+            colorScheme="blue"
+          />
+        </WidgetErrorBoundary>
+        <WidgetErrorBoundary fallbackTitle="Conversion failed">
+          <ConversionIndicator
+            title="Review → Interview"
+            fromLabel="Review"
+            toLabel="Interview"
+            value={0.625}
+            previousValue={0.58}
+            colorScheme="green"
+          />
+        </WidgetErrorBoundary>
+        <WidgetErrorBoundary fallbackTitle="Conversion failed">
+          <ConversionIndicator
+            title="Interview → Offer"
+            fromLabel="Interview"
+            toLabel="Offer"
+            value={0.429}
+            previousValue={0.45}
+            colorScheme="purple"
+          />
+        </WidgetErrorBoundary>
+        <WidgetErrorBoundary fallbackTitle="Conversion failed">
+          <ConversionIndicator
+            title="Offer → Placed"
+            fromLabel="Offer"
+            toLabel="Placed"
+            value={0.533}
+            previousValue={0.50}
+            colorScheme="orange"
+          />
+        </WidgetErrorBoundary>
+      </div>
+
+      {/* ================================================================ */}
+      {/* Target Gauges (single_value shape) */}
+      {/* ================================================================ */}
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <WidgetErrorBoundary fallbackTitle="Call Target failed">
+          <TargetGauge
+            assetKey="candidate_call_count"
+            title="Candidate Call Target"
+            targetValue={200}
+            targetLabel="Monthly Target"
+            dateRange={dateRange}
+          />
+        </WidgetErrorBoundary>
+        <WidgetErrorBoundary fallbackTitle="BD Call Target failed">
+          <TargetGauge
+            assetKey="bd_call_count"
+            title="BD Call Target"
+            targetValue={50}
+            targetLabel="Monthly Target"
+            dateRange={dateRange}
+          />
+        </WidgetErrorBoundary>
+        <WidgetErrorBoundary fallbackTitle="Meeting Target failed">
+          <TargetGauge
+            assetKey="candidate_meeting_count"
+            title="Meeting Target"
+            targetValue={30}
+            targetLabel="Monthly Target"
+            dateRange={dateRange}
+          />
+        </WidgetErrorBoundary>
+        <WidgetErrorBoundary fallbackTitle="Client Meeting Target failed">
+          <TargetGauge
+            assetKey="client_meeting_count"
+            title="Client Meeting Target"
+            targetValue={20}
+            targetLabel="Monthly Target"
+            dateRange={dateRange}
+          />
+        </WidgetErrorBoundary>
+      </div>
+
+      {/* ================================================================ */}
+      {/* Time Series Charts (time_series shape) */}
+      {/* ================================================================ */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <WidgetErrorBoundary fallbackTitle="Candidate Call chart failed">
           <TimeSeriesChart
@@ -103,28 +205,33 @@ export function DashboardContent() {
         </WidgetErrorBoundary>
       </div>
 
+      {/* ================================================================ */}
+      {/* Combo Chart (time_series shape, bar + moving average) */}
+      {/* ================================================================ */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <WidgetErrorBoundary fallbackTitle="Candidate Meeting chart failed">
-          <TimeSeriesChart
-            assetKey="candidate_meeting_count"
-            title="Candidate Meetings"
-            chartType="line"
-            color="#10b981"
+        <WidgetErrorBoundary fallbackTitle="Combo chart failed">
+          <TimeSeriesCombo
+            assetKey="candidate_call_count"
+            title="Candidate Calls: Daily + 7-Day Average"
+            barColor="#3b82f6"
+            lineColor="#ef4444"
             dateRange={dateRange}
           />
         </WidgetErrorBoundary>
-        <WidgetErrorBoundary fallbackTitle="Client Meeting chart failed">
-          <TimeSeriesChart
-            assetKey="client_meeting_count"
-            title="Client Meetings & Catch-ups"
-            chartType="line"
-            color="#f59e0b"
+        <WidgetErrorBoundary fallbackTitle="Combo chart failed">
+          <TimeSeriesCombo
+            assetKey="bd_call_count"
+            title="BD Calls: Daily + 7-Day Average"
+            barColor="#8b5cf6"
+            lineColor="#f59e0b"
             dateRange={dateRange}
           />
         </WidgetErrorBoundary>
       </div>
 
-      {/* Bar Charts - Rankings and Comparisons */}
+      {/* ================================================================ */}
+      {/* Bar Charts + Donut Chart (categorical shape) */}
+      {/* ================================================================ */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <WidgetErrorBoundary fallbackTitle="Top Performers chart failed">
           <BarChart
@@ -137,18 +244,62 @@ export function DashboardContent() {
             limit={8}
           />
         </WidgetErrorBoundary>
-        <WidgetErrorBoundary fallbackTitle="Top Performers chart failed">
-          <BarChart
-            assetKey="bd_call_count"
-            title="Top Performers: BD Calls"
-            dimension="consultant"
-            orientation="vertical"
-            color="#8b5cf6"
+        <WidgetErrorBoundary fallbackTitle="Donut chart failed">
+          <DonutChart
+            assetKey="candidate_call_count"
+            title="Call Distribution by Consultant"
+            chartType="donut"
+            dateRange={dateRange}
+            limit={6}
+          />
+        </WidgetErrorBoundary>
+      </div>
+
+      {/* ================================================================ */}
+      {/* Leaderboard + Stacked Bar (categorical shape) */}
+      {/* ================================================================ */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <WidgetErrorBoundary fallbackTitle="Leaderboard failed">
+          <AnimatedLeaderboard
+            assetKey="candidate_call_count"
+            title="Candidate Call Leaderboard"
             dateRange={dateRange}
             limit={8}
           />
         </WidgetErrorBoundary>
+        <WidgetErrorBoundary fallbackTitle="Stacked Bar failed">
+          <StackedBarChart
+            assetKey="candidate_call_count"
+            title="Activity Breakdown by Consultant"
+            dateRange={dateRange}
+            limit={6}
+          />
+        </WidgetErrorBoundary>
       </div>
+
+      {/* ================================================================ */}
+      {/* Heatmap (matrix shape) */}
+      {/* ================================================================ */}
+      <WidgetErrorBoundary fallbackTitle="Heatmap failed">
+        <Heatmap
+          assetKey="activity_heatmap"
+          title="Activity Heatmap: Consultants vs Activity Types"
+          dateRange={dateRange}
+          height={400}
+        />
+      </WidgetErrorBoundary>
+
+      {/* ================================================================ */}
+      {/* Data Table (tabular shape) */}
+      {/* ================================================================ */}
+      <WidgetErrorBoundary fallbackTitle="Data Table failed">
+        <DataTable
+          assetKey="candidate_call_count"
+          title="Recent Activity Log"
+          dateRange={dateRange}
+          pageSize={10}
+        />
+      </WidgetErrorBoundary>
     </div>
   );
 }

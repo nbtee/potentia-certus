@@ -1,0 +1,13 @@
+// Widget Library - Barrel Export
+export { KPICard } from './kpi-card';
+export { TimeSeriesChart } from './time-series-chart';
+export { BarChart } from './bar-chart';
+export { DonutChart } from './donut-chart';
+export { TargetGauge } from './target-gauge';
+export { AnimatedLeaderboard } from './animated-leaderboard';
+export { TimeSeriesCombo } from './time-series-combo';
+export { ConversionIndicator } from './conversion-indicator';
+export { DataTable } from './data-table';
+export { Heatmap } from './heatmap';
+export { StackedBarChart } from './stacked-bar-chart';
+export { WidgetErrorBoundary } from './widget-error-boundary';

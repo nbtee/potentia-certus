@@ -2,6 +2,7 @@
 
 import { useWidgetData } from '@/lib/data/use-widget-data';
 import { isCategorical } from '@/lib/data/shape-contracts';
+import { formatValue } from '@/lib/utils/format';
 import type { DateRange } from '@/lib/contexts/filter-context';
 import { motion } from 'framer-motion';
 import {
@@ -42,29 +43,6 @@ const getBarColor = (index: number, total: number, baseColor: string) => {
   // Create gradient from baseColor to lighter version
   const opacity = 0.6 + (0.4 * (total - index)) / total;
   return `${baseColor}${Math.round(opacity * 255).toString(16).padStart(2, '0')}`;
-};
-
-// ============================================================================
-// Format Utilities
-// ============================================================================
-
-const formatValue = (
-  value: number,
-  format?: 'number' | 'currency' | 'percentage'
-): string => {
-  switch (format) {
-    case 'currency':
-      return new Intl.NumberFormat('en-NZ', {
-        style: 'currency',
-        currency: 'NZD',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    case 'percentage':
-      return `${(value * 100).toFixed(1)}%`;
-    default:
-      return new Intl.NumberFormat('en-NZ').format(value);
-  }
 };
 
 // ============================================================================

@@ -38,6 +38,11 @@ export interface Categorical {
     value: number;
     metadata?: Record<string, unknown>;
   }>;
+  /** Multi-series data for stacked/grouped bar charts */
+  series?: Array<{
+    name: string;
+    data: Array<{ label: string; value: number }>;
+  }>;
   format?: 'number' | 'currency' | 'percentage';
 }
 
