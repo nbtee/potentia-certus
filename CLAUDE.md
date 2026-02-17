@@ -113,11 +113,36 @@ See the Setup & Build Guide for full stage details with test criteria.
 
 ## Current Status
 
-**Phase:** Documentation/Architecture complete. No application code yet.
+**Overall: ~70% complete** (7 of 10 stages done)
+
+| Stage | Name | Status |
+|-------|------|--------|
+| A | Schema + Seed | ✅ Complete |
+| B | App Shell + Auth | ✅ Complete |
+| C | Widget Library (11 types) | ✅ Complete |
+| D | SQL Server Ingestion | ❌ Blocked (no credentials) |
+| E | Connect Widgets to Data | ✅ Complete (seed data) |
+| F | Dashboard Persistence | ✅ Complete |
+| G | Admin UI (9 sections) | ✅ Complete |
+| H | AI Orchestration | ❌ Not started |
+| I | Security Hardening | ⚠️ Partial (25%) |
+| J | Performance Tuning | ❌ Not started |
+
+**What's working now:**
+- Full auth (login/signup/middleware/role-based nav)
+- 11 widget types with live data from seed DB
+- Dashboard CRUD, drag/resize grid, layout persistence
+- Add Widget dialog (asset → widget type → configure)
+- Pipeline template with 13 pre-configured widgets
+- Filter context (date range, hierarchy scope) wired to all widgets
+- Admin UI: Users (CRUD + CSV import), Hierarchy, Rules, Targets (individual + bulk), Data Assets, Context Docs (versioned), Synonyms, Ingestion Health, Audit Log (filterable + CSV export)
+- Role gate: admin full access, manager read-only, consultant/team_lead blocked
+
+**Critical blocker:** SQL Server credentials needed for Stage D (real Bullhorn data).
+
+**Next stages:** H (AI Orchestration) and D (when credentials arrive) can run in parallel.
 
 **Inputs still needed from stakeholder:**
 - SQL Server connection details + network accessibility
-- Real org hierarchy data
 - Context document content (4 Markdown docs)
 - Revenue blending multiplier values
-- Initial user list with roles

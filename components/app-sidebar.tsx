@@ -12,6 +12,14 @@ import {
   TrendingUp,
   Sparkles,
   Layers,
+  Shield,
+  Network,
+  Target,
+  BookOpen,
+  MessageSquareWarning,
+  Activity,
+  ScrollText,
+  Sliders,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -27,6 +35,7 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
   roles: ('consultant' | 'team_lead' | 'manager' | 'admin')[];
   badge?: string;
+  section?: string;
 }
 
 const navigation: NavItem[] = [
@@ -67,10 +76,66 @@ const navigation: NavItem[] = [
     icon: FileText,
     roles: ['manager', 'admin'],
   },
+  // Administration section
+  {
+    name: 'Admin Overview',
+    href: '/admin',
+    icon: Shield,
+    roles: ['manager', 'admin'],
+    section: 'Administration',
+  },
+  {
+    name: 'Users',
+    href: '/admin/users',
+    icon: Users,
+    roles: ['admin'],
+  },
+  {
+    name: 'Hierarchy',
+    href: '/admin/hierarchy',
+    icon: Network,
+    roles: ['admin'],
+  },
+  {
+    name: 'Business Rules',
+    href: '/admin/rules',
+    icon: Sliders,
+    roles: ['admin'],
+  },
+  {
+    name: 'Targets',
+    href: '/admin/targets',
+    icon: Target,
+    roles: ['manager', 'admin'],
+  },
   {
     name: 'Data Assets',
     href: '/admin/data-assets',
     icon: Database,
+    roles: ['admin'],
+  },
+  {
+    name: 'Context Docs',
+    href: '/admin/context-docs',
+    icon: BookOpen,
+    roles: ['admin'],
+  },
+  {
+    name: 'Synonyms',
+    href: '/admin/synonyms',
+    icon: MessageSquareWarning,
+    roles: ['admin'],
+  },
+  {
+    name: 'Ingestion',
+    href: '/admin/ingestion',
+    icon: Activity,
+    roles: ['manager', 'admin'],
+  },
+  {
+    name: 'Audit Log',
+    href: '/admin/audit-log',
+    icon: ScrollText,
     roles: ['admin'],
   },
   {
@@ -133,8 +198,11 @@ export function AppSidebar({ userRole }: SidebarProps) {
           initial="hidden"
           animate="show"
         >
-          {visibleNavItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+          {visibleNavItems.map((item, index) => {
+            const isActive =
+              item.href === '/admin'
+                ? pathname === '/admin'
+                : pathname === item.href || pathname.startsWith(item.href + '/');
             const Icon = item.icon;
 
             return (
@@ -146,6 +214,11 @@ export function AppSidebar({ userRole }: SidebarProps) {
                 }}
                 transition={{ duration: 0.2 }}
               >
+                {item.section && (
+                  <div className="mb-1 mt-4 px-3 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+                    {item.section}
+                  </div>
+                )}
                 <Link
                   href={item.href}
                   className={cn(
