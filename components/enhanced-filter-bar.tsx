@@ -108,13 +108,13 @@ export function EnhancedFilterBar({ userRole }: EnhancedFilterBarProps) {
       className="relative overflow-hidden rounded-xl border border-gray-200 bg-white/80 backdrop-blur-xl p-4 shadow-lg shadow-gray-100/50"
     >
       {/* Decorative gradient */}
-      <div className="absolute inset-0 bg-gradient-to-r from-sky-500/5 via-transparent to-blue-500/5 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-transparent to-teal-500/5 pointer-events-none" />
 
       <div className="relative flex flex-wrap items-center gap-4">
         {/* Filter Icon */}
         <div className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-sky-100 to-blue-100">
-            <Filter className="h-5 w-5 text-sky-600" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-100 to-teal-100">
+            <Filter className="h-5 w-5 text-brand-darkest" />
           </div>
           <span className="text-sm font-semibold text-gray-900">Filters</span>
         </div>

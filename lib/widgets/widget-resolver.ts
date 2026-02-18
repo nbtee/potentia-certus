@@ -126,7 +126,7 @@ export function buildWidgetProps(
       return {
         ...base,
         icon: resolveIcon(config.icon),
-        colorScheme: config.colorScheme || 'blue',
+        colorScheme: config.colorScheme || 'teal',
       };
 
     case 'time_series_chart':
@@ -187,7 +187,7 @@ export function buildWidgetProps(
         toLabel: config.toLabel,
         value: config.value,
         previousValue: config.previousValue,
-        colorScheme: config.colorScheme || 'blue',
+        colorScheme: config.colorScheme || 'teal',
         // conversion_indicator can work with assetKey OR direct values
         ...(assetKey ? { assetKey, dateRange } : {}),
       };

@@ -37,7 +37,7 @@ import type { DataAsset } from '@/lib/admin/types';
 import { MoreHorizontal, Plus, Pencil } from 'lucide-react';
 
 const categoryColors: Record<string, string> = {
-  activity: 'bg-blue-100 text-blue-800',
+  activity: 'bg-teal-100 text-teal-800',
   revenue: 'bg-emerald-100 text-emerald-800',
   pipeline: 'bg-purple-100 text-purple-800',
   performance: 'bg-amber-100 text-amber-800',

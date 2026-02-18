@@ -41,7 +41,7 @@ import { MoreHorizontal, Plus, Pencil, Trash2 } from 'lucide-react';
 
 const levelColors: Record<string, string> = {
   national: 'bg-purple-100 text-purple-800',
-  region: 'bg-blue-100 text-blue-800',
+  region: 'bg-teal-100 text-teal-800',
   team: 'bg-emerald-100 text-emerald-800',
   individual: 'bg-gray-100 text-gray-800',
 };

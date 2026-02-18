@@ -39,7 +39,7 @@ export default async function AdminLayout({
           <p className="mt-2 text-gray-500">
             You do not have permission to access the administration area.
           </p>
-          <a href="/dashboard" className="mt-4 inline-block text-sm text-sky-600 hover:underline">
+          <a href="/dashboard" className="mt-4 inline-block text-sm text-primary hover:underline">
             Return to Dashboard
           </a>
         </div>

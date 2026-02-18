@@ -170,7 +170,7 @@ export function AnimatedLeaderboard({
                             ? 'bg-gray-400'
                             : index === 2
                               ? 'bg-amber-500'
-                              : 'bg-blue-400'
+                              : 'bg-teal-400'
                       }`}
                     />
                   </div>

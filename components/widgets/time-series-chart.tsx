@@ -41,7 +41,7 @@ export function TimeSeriesChart({
   assetKey,
   title,
   chartType = 'area',
-  color = '#3b82f6',
+  color = '#00E5C0',
   dateRange,
   consultantId,
   height = 300,

@@ -1,26 +1,100 @@
 @import "tailwindcss";
 
+/* ============================================================================
+   Degular Display - Display/Heading Font
+   ============================================================================ */
+@font-face {
+  font-family: 'Degular Display';
+  src: url('./fonts/DegularDisplayDemo-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Degular Display';
+  src: url('./fonts/DegularDisplayDemo-Semibold.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Degular Display';
+  src: url('./fonts/DegularDisplayDemo-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ============================================================================
+   Gesta - Body Font
+   ============================================================================ */
+@font-face {
+  font-family: 'Gesta';
+  src: url('./fonts/fonnts.com-Gesta_Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gesta';
+  src: url('./fonts/fonnts.com-Gesta_Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gesta';
+  src: url('./fonts/fonnts.com-Gesta_Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ============================================================================
+   Tailwind v4 Theme Extensions
+   ============================================================================ */
+@theme {
+  --font-display: 'Degular Display', Arial, Helvetica, sans-serif;
+  --font-body: 'Gesta', Arial, Helvetica, sans-serif;
+
+  --color-brand-primary: #00E5C0;
+  --color-brand-dark: #00b89a;
+  --color-brand-darker: #008f7a;
+  --color-brand-darkest: #007a68;
+  --color-brand-foreground: #0B141B;
+}
+
+/* ============================================================================
+   CSS Variables (ShadCN UI)
+   ============================================================================ */
 :root {
   --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
+  --foreground: 200 37% 8%;
   --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
+  --card-foreground: 200 37% 8%;
   --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 221.2 83.2% 53.3%;
-  --primary-foreground: 210 40% 98%;
+  --popover-foreground: 200 37% 8%;
+  --primary: 168 100% 45%;
+  --primary-foreground: 200 37% 8%;
   --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
+  --secondary-foreground: 200 37% 8%;
   --muted: 210 40% 96.1%;
   --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-  --destructive: 0 84.2% 60.2%;
+  --accent: 168 100% 95%;
+  --accent-foreground: 200 37% 8%;
+  --destructive: 0 100% 63%;
   --destructive-foreground: 210 40% 98%;
   --border: 214.3 31.8% 91.4%;
   --input: 214.3 31.8% 91.4%;
-  --ring: 221.2 83.2% 53.3%;
-  --radius: 0.5rem;
+  --ring: 168 100% 45%;
+  --radius: 0.375rem;
+
+  --font-degular-display: 'Degular Display', Arial, Helvetica, sans-serif;
+  --font-gesta: 'Gesta', Arial, Helvetica, sans-serif;
 }
 
 .dark {
@@ -30,8 +104,8 @@
   --card-foreground: 210 40% 98%;
   --popover: 222.2 84% 4.9%;
   --popover-foreground: 210 40% 98%;
-  --primary: 217.2 91.2% 59.8%;
-  --primary-foreground: 222.2 47.4% 11.2%;
+  --primary: 168 100% 45%;
+  --primary-foreground: 200 37% 8%;
   --secondary: 217.2 32.6% 17.5%;
   --secondary-foreground: 210 40% 98%;
   --muted: 217.2 32.6% 17.5%;
@@ -42,15 +116,25 @@
   --destructive-foreground: 210 40% 98%;
   --border: 217.2 32.6% 17.5%;
   --input: 217.2 32.6% 17.5%;
-  --ring: 224.3 76.3% 48%;
+  --ring: 168 100% 45%;
 }
 
+/* ============================================================================
+   Global Base Styles
+   ============================================================================ */
 body {
+  font-family: var(--font-gesta), Arial, Helvetica, sans-serif;
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
 }
 
-/* react-grid-layout */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-degular-display), Arial, Helvetica, sans-serif;
+}
+
+/* ============================================================================
+   react-grid-layout
+   ============================================================================ */
 .react-grid-layout {
   position: relative;
   transition: height 200ms ease;

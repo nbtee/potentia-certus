@@ -272,7 +272,7 @@ export function AddWidgetDialog({
                 <div className="space-y-2">
                   <Label>Color Scheme</Label>
                   <div className="flex gap-2">
-                    {(['blue', 'green', 'purple', 'orange'] as const).map(
+                    {(['teal', 'green', 'purple', 'orange'] as const).map(
                       (color) => (
                         <button
                           key={color}
@@ -289,8 +289,8 @@ export function AddWidgetDialog({
                           }`}
                           style={{
                             backgroundColor:
-                              color === 'blue'
-                                ? '#3b82f6'
+                              color === 'teal'
+                                ? '#00E5C0'
                                 : color === 'green'
                                   ? '#10b981'
                                   : color === 'purple'
@@ -431,14 +431,14 @@ export function AddWidgetDialog({
                     <input
                       id="chart-color"
                       type="color"
-                      value={config.color || '#3b82f6'}
+                      value={config.color || '#00E5C0'}
                       onChange={(e) =>
                         setConfig((prev) => ({ ...prev, color: e.target.value }))
                       }
                       className="h-8 w-8 cursor-pointer rounded border-0"
                     />
                     <span className="text-xs text-gray-500">
-                      {config.color || '#3b82f6'}
+                      {config.color || '#00E5C0'}
                     </span>
                   </div>
                 </div>

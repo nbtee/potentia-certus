@@ -14,16 +14,16 @@ interface StatCardProps {
     isPositive: boolean;
   };
   description?: string;
-  color?: 'blue' | 'green' | 'purple' | 'orange';
+  color?: 'teal' | 'green' | 'purple' | 'orange';
   index?: number;
 }
 
 const colorClasses = {
-  blue: {
-    bg: 'from-sky-500/10 to-blue-500/10',
-    icon: 'text-sky-500',
-    ring: 'ring-sky-500/20',
-    gradient: 'from-sky-400 to-blue-500',
+  teal: {
+    bg: 'from-teal-500/10 to-emerald-500/10',
+    icon: 'text-teal-500',
+    ring: 'ring-teal-500/20',
+    gradient: 'from-teal-400 to-emerald-500',
   },
   green: {
     bg: 'from-emerald-500/10 to-green-500/10',
@@ -51,7 +51,7 @@ export function StatCard({
   icon: Icon,
   trend,
   description,
-  color = 'blue',
+  color = 'teal',
   index = 0,
 }: StatCardProps) {
   const colors = colorClasses[color];

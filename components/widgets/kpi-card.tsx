@@ -16,7 +16,7 @@ import { ArrowUp, ArrowDown, Minus, type LucideIcon } from 'lucide-react';
 export interface KPICardProps {
   assetKey: string;
   icon: LucideIcon;
-  colorScheme?: 'blue' | 'green' | 'purple' | 'orange';
+  colorScheme?: 'teal' | 'green' | 'purple' | 'orange';
   dateRange?: {
     start: string;
     end: string;
@@ -25,11 +25,11 @@ export interface KPICardProps {
 }
 
 const colorSchemes = {
-  blue: {
-    gradient: 'from-blue-500/10 to-blue-600/5',
-    iconBg: 'bg-blue-500/10',
-    iconColor: 'text-blue-600',
-    border: 'border-blue-200',
+  teal: {
+    gradient: 'from-teal-500/10 to-teal-600/5',
+    iconBg: 'bg-teal-500/10',
+    iconColor: 'text-teal-600',
+    border: 'border-teal-200',
   },
   green: {
     gradient: 'from-green-500/10 to-green-600/5',
@@ -54,7 +54,7 @@ const colorSchemes = {
 export function KPICard({
   assetKey,
   icon: Icon,
-  colorScheme = 'blue',
+  colorScheme = 'teal',
   dateRange,
   consultantId,
 }: KPICardProps) {

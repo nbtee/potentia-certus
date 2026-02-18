@@ -4,6 +4,7 @@ import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { login } from './actions';
 import Link from 'next/link';
+import Image from 'next/image';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -12,7 +13,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+      className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-primary-foreground bg-primary hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
     >
       {pending ? 'Signing in...' : 'Sign in'}
     </button>
@@ -23,15 +24,26 @@ export function LoginForm() {
   const [state, formAction] = useActionState(login, null);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div
+      className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-cover bg-center bg-fixed bg-no-repeat"
+      style={{ backgroundImage: "url('/tech_stack_app_bg.jpg')" }}
+    >
+      <div className="max-w-md w-full space-y-8 bg-white/90 backdrop-blur-xl rounded-2xl p-8 shadow-2xl">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <Image
+            src="/Potentia_logo_full.svg"
+            alt="Potentia"
+            width={160}
+            height={40}
+            className="mx-auto mb-4"
+            priority
+          />
+          <h2 className="text-center text-3xl font-extrabold text-gray-900">
             Sign in to Potentia Certus
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Or{' '}
-            <Link href="/signup" className="font-medium text-blue-600 hover:text-blue-500">
+            <Link href="/signup" className="font-medium text-primary hover:text-brand-dark transition-colors">
               create a new account
             </Link>
           </p>
@@ -59,7 +71,7 @@ export function LoginForm() {
                 type="email"
                 autoComplete="email"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
                 placeholder="Email address"
               />
             </div>
@@ -74,7 +86,7 @@ export function LoginForm() {
                 autoComplete="current-password"
                 required
                 minLength={6}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
                 placeholder="Password"
               />
             </div>

@@ -113,15 +113,15 @@ See the Setup & Build Guide for full stage details with test criteria.
 
 ## Current Status
 
-**Overall: ~80% complete** (8 of 10 stages done)
+**Overall: ~90% complete** (9 of 10 stages done)
 
 | Stage | Name | Status |
 |-------|------|--------|
 | A | Schema + Seed | ✅ Complete |
 | B | App Shell + Auth | ✅ Complete |
 | C | Widget Library (11 types) | ✅ Complete |
-| D | SQL Server Ingestion | ❌ Blocked (no credentials) |
-| E | Connect Widgets to Data | ✅ Complete (seed data) |
+| D | SQL Server Ingestion | ✅ Complete (initial full sync) |
+| E | Connect Widgets to Data | ✅ Complete (real data) |
 | F | Dashboard Persistence | ✅ Complete |
 | G | Admin UI (9 sections) | ✅ Complete |
 | H | AI Orchestration | ✅ Complete |
@@ -130,7 +130,9 @@ See the Setup & Build Guide for full stage details with test criteria.
 
 **What's working now:**
 - Full auth (login/signup/middleware/role-based nav)
-- 11 widget types with live data from seed DB
+- 49 real users provisioned from Bullhorn CorporateUsers (3 admin, 5 manager, 8 team_lead, 33 consultant)
+- 11 widget types with live data from real Bullhorn data
+- SQL Server ingestion: 52K+ records synced (36K activities, 10K candidates, 3K submissions, 1K clients, 1K jobs, 538 placements)
 - Dashboard CRUD, drag/resize grid, layout persistence
 - Add Widget dialog (asset → widget type → configure)
 - Pipeline template with 13 pre-configured widgets
@@ -139,12 +141,11 @@ See the Setup & Build Guide for full stage details with test criteria.
 - Role gate: admin full access, manager read-only, consultant/team_lead blocked
 - AI Chat: floating trigger on dashboards, slide-out panel, Builder mode (widget proposals with approve/reject), Answer mode (direct data answers)
 - AI rate limiting (10 req/min per user), unmatched term logging, context-aware system prompt
+- Floatinator design system: Potentia brand colors (#00E5C0 teal), Degular Display + Gesta fonts, gradient backgrounds, Potentia logo
 
-**Critical blocker:** SQL Server credentials needed for Stage D (real Bullhorn data).
-
-**Next stages:** I (Security Hardening) and D (when credentials arrive) can run in parallel.
+**Next stages:** I (Security Hardening) and J (Performance Tuning).
 
 **Inputs still needed from stakeholder:**
-- SQL Server connection details + network accessibility
 - Context document content (4 Markdown docs)
 - Revenue blending multiplier values
+- Incremental sync schedule (pg_cron interval for ongoing sync)

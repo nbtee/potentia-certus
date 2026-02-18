@@ -17,15 +17,15 @@ interface ConversionIndicatorProps {
   /** Direct value mode: previous period value for comparison */
   previousValue?: number;
   dateRange?: { start: string; end: string };
-  colorScheme?: 'blue' | 'green' | 'purple' | 'orange';
+  colorScheme?: 'teal' | 'green' | 'purple' | 'orange';
 }
 
 const colorSchemes = {
-  blue: {
-    bg: 'bg-blue-50',
-    border: 'border-blue-200',
-    accent: 'text-blue-700',
-    ring: 'ring-blue-500/20',
+  teal: {
+    bg: 'bg-teal-50',
+    border: 'border-teal-200',
+    accent: 'text-teal-700',
+    ring: 'ring-teal-500/20',
   },
   green: {
     bg: 'bg-green-50',
@@ -55,7 +55,7 @@ export function ConversionIndicator({
   value: directValue,
   previousValue,
   dateRange,
-  colorScheme = 'blue',
+  colorScheme = 'teal',
 }: ConversionIndicatorProps) {
   const { data, isLoading, error } = useWidgetData({
     assetKey: assetKey || '__noop__',

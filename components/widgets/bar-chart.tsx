@@ -55,7 +55,7 @@ export function BarChart({
   dateRange,
   dimension = 'consultant',
   orientation = 'vertical',
-  color = '#3b82f6', // blue-500
+  color = '#00E5C0', // brand-primary
   limit = 10,
   showValues = false,
   height = 300,

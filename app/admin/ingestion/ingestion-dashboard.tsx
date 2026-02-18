@@ -15,7 +15,7 @@ import { RefreshCw, Database } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
   completed: 'bg-green-100 text-green-800',
-  running: 'bg-blue-100 text-blue-800',
+  running: 'bg-teal-100 text-teal-800',
   failed: 'bg-red-100 text-red-800',
   partial: 'bg-amber-100 text-amber-800',
 };

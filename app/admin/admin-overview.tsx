@@ -27,7 +27,7 @@ const cards = [
     href: '/admin/users',
     icon: Users,
     countKey: 'userCount' as const,
-    color: 'text-blue-600 bg-blue-50',
+    color: 'text-teal-600 bg-teal-50',
   },
   {
     title: 'Hierarchy Nodes',

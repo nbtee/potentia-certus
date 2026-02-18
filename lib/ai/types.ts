@@ -19,7 +19,7 @@ export const widgetPairingSchema = z.object({
     title: z.string(),
     comparison: z.boolean().optional(),
     format: z.string().optional(),
-    colorScheme: z.enum(['blue', 'green', 'purple', 'orange']).optional(),
+    colorScheme: z.enum(['teal', 'green', 'purple', 'orange']).optional(),
     color: z.string().optional(),
     icon: z.string().optional(),
     orientation: z.enum(['vertical', 'horizontal']).optional(),

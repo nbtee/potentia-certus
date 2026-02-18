@@ -19,10 +19,10 @@ import { MoreHorizontal, Plus, Trash2 } from 'lucide-react';
 
 const typeColors: Record<string, string> = {
   revenue: 'bg-emerald-100 text-emerald-800',
-  placements: 'bg-blue-100 text-blue-800',
+  placements: 'bg-teal-100 text-teal-800',
   submittals: 'bg-purple-100 text-purple-800',
   calls: 'bg-amber-100 text-amber-800',
-  client_visits: 'bg-sky-100 text-sky-800',
+  client_visits: 'bg-cyan-100 text-cyan-800',
   interviews: 'bg-pink-100 text-pink-800',
 };
 
@@ -79,7 +79,7 @@ export function TargetsTable() {
             variant="secondary"
             className={
               pt === 'weekly'
-                ? 'bg-sky-100 text-sky-800'
+                ? 'bg-cyan-100 text-cyan-800'
                 : 'bg-gray-100 text-gray-800'
             }
           >

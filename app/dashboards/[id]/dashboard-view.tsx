@@ -204,7 +204,7 @@ function DashboardViewInner({
                 title={dashboard.is_shared ? 'Stop sharing' : 'Share dashboard'}
               >
                 <Share2
-                  className={`h-4 w-4 ${dashboard.is_shared ? 'text-sky-500' : ''}`}
+                  className={`h-4 w-4 ${dashboard.is_shared ? 'text-teal-500' : ''}`}
                 />
               </Button>
             </>

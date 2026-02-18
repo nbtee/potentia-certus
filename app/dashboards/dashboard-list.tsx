@@ -130,10 +130,10 @@ export function DashboardList() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
               >
-                <Card className="border-dashed border-sky-300 bg-sky-50/50 transition-shadow hover:shadow-md">
+                <Card className="border-dashed border-teal-300 bg-teal-50/50 transition-shadow hover:shadow-md">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base">
-                      <LayoutGrid className="h-4 w-4 text-sky-500" />
+                      <LayoutGrid className="h-4 w-4 text-teal-500" />
                       {template.name}
                     </CardTitle>
                     {template.description && (
@@ -308,7 +308,7 @@ function DashboardCard({
               <LayoutGrid className="h-4 w-4 text-gray-400" />
               <span className="truncate">{dashboard.name}</span>
               {isShared && (
-                <Share2 className="ml-auto h-3.5 w-3.5 flex-shrink-0 text-sky-500" />
+                <Share2 className="ml-auto h-3.5 w-3.5 flex-shrink-0 text-teal-500" />
               )}
             </CardTitle>
             {dashboard.description && (

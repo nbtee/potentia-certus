@@ -72,8 +72,8 @@ export function EnhancedHeader({ userEmail, userName }: AppHeaderProps) {
         >
           <Bell className="h-5 w-5" />
           <span className="absolute right-1.5 top-1.5 flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-75"></span>
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-sky-500"></span>
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-primary opacity-75"></span>
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-primary"></span>
           </span>
         </motion.button>
 
@@ -93,7 +93,7 @@ export function EnhancedHeader({ userEmail, userName }: AppHeaderProps) {
               whileTap={{ scale: 0.95 }}
             >
               <Avatar className="ring-2 ring-gray-100 ring-offset-2">
-                <AvatarFallback className="bg-gradient-to-br from-sky-400 to-blue-500 text-white font-semibold">
+                <AvatarFallback className="bg-gradient-to-br from-brand-primary to-brand-dark text-white font-semibold">
                   {getInitials()}
                 </AvatarFallback>
               </Avatar>

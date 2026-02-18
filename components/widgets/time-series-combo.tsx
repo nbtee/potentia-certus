@@ -50,7 +50,7 @@ export function TimeSeriesCombo({
   title,
   dateRange,
   consultantId,
-  barColor = '#3b82f6',
+  barColor = '#00E5C0',
   lineColor = '#ef4444',
   movingAverageDays = 7,
   height = 300,

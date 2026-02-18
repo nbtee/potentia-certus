@@ -25,5 +25,12 @@ coverage
 # Misc
 .vercel
 
+# Sync scripts (contain hardcoded credentials)
+scripts/full-sync.js
+scripts/provision-users.js
+
+# Design system source files
+Design System/
+
 # Supabase CLI temp files
 supabase/.temp/

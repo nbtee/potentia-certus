@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
@@ -10,7 +11,6 @@ import {
   FileText,
   Database,
   TrendingUp,
-  Sparkles,
   Layers,
   Shield,
   Network,
@@ -172,16 +172,13 @@ export function AppSidebar({ userRole }: SidebarProps) {
       {/* Logo */}
       <div className="flex h-16 items-center justify-between border-b border-gray-800/50 px-6">
         <div className="flex items-center gap-2">
-          <motion.div
-            initial={{ rotate: 0 }}
-            animate={{ rotate: 360 }}
-            transition={{ duration: 0.6, ease: 'easeInOut' }}
-          >
-            <Sparkles className="h-5 w-5 text-sky-400" />
-          </motion.div>
-          <h1 className="text-lg font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-            Potentia Certus
-          </h1>
+          <Image
+            src="/Potentia_logo_full.svg"
+            alt="Potentia"
+            width={140}
+            height={35}
+            className="brightness-0 invert"
+          />
         </div>
       </div>
 
@@ -198,7 +195,7 @@ export function AppSidebar({ userRole }: SidebarProps) {
           initial="hidden"
           animate="show"
         >
-          {visibleNavItems.map((item, index) => {
+          {visibleNavItems.map((item) => {
             const isActive =
               item.href === '/admin'
                 ? pathname === '/admin'
@@ -224,7 +221,7 @@ export function AppSidebar({ userRole }: SidebarProps) {
                   className={cn(
                     'group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
                     isActive
-                      ? 'bg-gradient-to-r from-sky-500/10 to-blue-500/10 text-white shadow-lg shadow-sky-500/20'
+                      ? 'bg-gradient-to-r from-emerald-500/10 to-teal-500/10 text-white shadow-lg shadow-emerald-500/20'
                       : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'
                   )}
                 >
@@ -232,7 +229,7 @@ export function AppSidebar({ userRole }: SidebarProps) {
                   {isActive && (
                     <motion.div
                       layoutId="activeNav"
-                      className="absolute left-0 top-0 h-full w-1 rounded-r-full bg-gradient-to-b from-sky-400 to-blue-500"
+                      className="absolute left-0 top-0 h-full w-1 rounded-r-full bg-gradient-to-b from-brand-primary to-brand-dark"
                       transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                     />
                   )}
@@ -240,7 +237,7 @@ export function AppSidebar({ userRole }: SidebarProps) {
                   <Icon
                     className={cn(
                       'h-5 w-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110',
-                      isActive ? 'text-sky-400' : 'text-gray-500 group-hover:text-gray-300'
+                      isActive ? 'text-emerald-400' : 'text-gray-500 group-hover:text-gray-300'
                     )}
                   />
 
@@ -249,14 +246,14 @@ export function AppSidebar({ userRole }: SidebarProps) {
                   {item.badge && (
                     <Badge
                       variant="secondary"
-                      className="bg-sky-500/20 text-sky-300 border-sky-500/30 text-xs px-1.5 py-0"
+                      className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-xs px-1.5 py-0"
                     >
                       {item.badge}
                     </Badge>
                   )}
 
                   {/* Hover effect */}
-                  <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-sky-500/0 to-blue-500/0 opacity-0 transition-opacity duration-200 group-hover:from-sky-500/5 group-hover:to-blue-500/5 group-hover:opacity-100" />
+                  <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-emerald-500/0 to-teal-500/0 opacity-0 transition-opacity duration-200 group-hover:from-emerald-500/5 group-hover:to-teal-500/5 group-hover:opacity-100" />
                 </Link>
               </motion.div>
             );
@@ -268,7 +265,7 @@ export function AppSidebar({ userRole }: SidebarProps) {
       <div className="border-t border-gray-800/50 p-4">
         <div className="rounded-lg bg-gray-800/30 p-3 backdrop-blur-sm">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-blue-500">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-primary to-brand-dark">
               <span className="text-xs font-bold text-white">
                 {roleLabels[userRole].slice(0, 1)}
               </span>

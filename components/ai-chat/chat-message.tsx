@@ -22,7 +22,7 @@ export function ChatMessage({ message, dashboardId, isLast }: ChatMessageProps) 
       {/* Avatar */}
       <div
         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-          isUser ? 'bg-sky-100 text-sky-600' : 'bg-purple-100 text-purple-600'
+          isUser ? 'bg-teal-100 text-teal-600' : 'bg-purple-100 text-purple-600'
         }`}
       >
         {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
@@ -35,7 +35,7 @@ export function ChatMessage({ message, dashboardId, isLast }: ChatMessageProps) 
           <div
             className={`rounded-lg px-3 py-2 text-sm ${
               isUser
-                ? 'bg-sky-500 text-white'
+                ? 'bg-primary text-white'
                 : 'bg-gray-100 text-gray-900'
             }`}
           >

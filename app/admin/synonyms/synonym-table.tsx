@@ -31,7 +31,7 @@ const statusColors: Record<string, string> = {
   pending: 'bg-amber-100 text-amber-800',
   added_synonym: 'bg-green-100 text-green-800',
   ignored: 'bg-gray-100 text-gray-600',
-  new_asset_created: 'bg-blue-100 text-blue-800',
+  new_asset_created: 'bg-teal-100 text-teal-800',
 };
 
 export function SynonymTable() {

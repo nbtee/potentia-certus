@@ -47,7 +47,7 @@ export function DashboardContent() {
           <KPICard
             assetKey="candidate_call_count"
             icon={Phone}
-            colorScheme="blue"
+            colorScheme="teal"
             dateRange={dateRange}
           />
         </WidgetErrorBoundary>
@@ -71,7 +71,7 @@ export function DashboardContent() {
           <KPICard
             assetKey="ad_call_count"
             icon={Phone}
-            colorScheme="blue"
+            colorScheme="teal"
             dateRange={dateRange}
           />
         </WidgetErrorBoundary>
@@ -104,7 +104,7 @@ export function DashboardContent() {
             toLabel="Review"
             value={0.667}
             previousValue={0.62}
-            colorScheme="blue"
+            colorScheme="teal"
           />
         </WidgetErrorBoundary>
         <WidgetErrorBoundary fallbackTitle="Conversion failed">
@@ -190,7 +190,7 @@ export function DashboardContent() {
             assetKey="candidate_call_count"
             title="Candidate Call Activity"
             chartType="area"
-            color="#3b82f6"
+            color="#00E5C0"
             dateRange={dateRange}
           />
         </WidgetErrorBoundary>
@@ -213,7 +213,7 @@ export function DashboardContent() {
           <TimeSeriesCombo
             assetKey="candidate_call_count"
             title="Candidate Calls: Daily + 7-Day Average"
-            barColor="#3b82f6"
+            barColor="#00E5C0"
             lineColor="#ef4444"
             dateRange={dateRange}
           />
@@ -239,7 +239,7 @@ export function DashboardContent() {
             title="Top Performers: Candidate Calls"
             dimension="consultant"
             orientation="vertical"
-            color="#3b82f6"
+            color="#00E5C0"
             dateRange={dateRange}
             limit={8}
           />

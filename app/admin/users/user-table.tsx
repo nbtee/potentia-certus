@@ -20,8 +20,8 @@ import { MoreHorizontal, Plus, UserX, UserCheck, Pencil, Upload } from 'lucide-r
 
 const roleColors: Record<string, string> = {
   admin: 'bg-purple-100 text-purple-800',
-  manager: 'bg-blue-100 text-blue-800',
-  team_lead: 'bg-sky-100 text-sky-800',
+  manager: 'bg-teal-100 text-teal-800',
+  team_lead: 'bg-cyan-100 text-cyan-800',
   consultant: 'bg-gray-100 text-gray-800',
 };
 

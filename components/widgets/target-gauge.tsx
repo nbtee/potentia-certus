@@ -18,7 +18,7 @@ interface TargetGaugeProps {
 
 function getGaugeColor(percentage: number): string {
   if (percentage >= 100) return '#10b981'; // green
-  if (percentage >= 75) return '#3b82f6'; // blue
+  if (percentage >= 75) return '#00E5C0'; // teal
   if (percentage >= 50) return '#f59e0b'; // amber
   return '#ef4444'; // red
 }
