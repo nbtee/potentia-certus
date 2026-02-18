@@ -1,6 +1,5 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 import { writeAuditLog } from '@/lib/admin/audit';
@@ -105,7 +104,7 @@ export async function createNode(
     level: parsed.data.hierarchy_level,
   });
 
-  revalidatePath('/admin/hierarchy');
+
   return { data: data as OrgNode };
 }
 
@@ -159,7 +158,7 @@ export async function updateNode(
     updates
   );
 
-  revalidatePath('/admin/hierarchy');
+
   return { data: data as OrgNode };
 }
 
@@ -214,6 +213,6 @@ export async function deleteNode(nodeId: string): Promise<ActionResult<void>> {
     null
   );
 
-  revalidatePath('/admin/hierarchy');
+
   return { data: undefined };
 }

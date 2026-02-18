@@ -1,6 +1,5 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 import { writeAuditLog } from '@/lib/admin/audit';
@@ -129,7 +128,7 @@ export async function resolveUnmatchedTerm(
     await writeAuditLog('synonym.dismiss', 'unmatched_terms', parsed.data.id);
   }
 
-  revalidatePath('/admin/synonyms');
+
   return { data: undefined };
 }
 
@@ -160,6 +159,6 @@ export async function bulkDismissTerms(termIds: string[]): Promise<ActionResult<
     count: termIds.length,
   });
 
-  revalidatePath('/admin/synonyms');
+
   return { data: undefined };
 }

@@ -1,6 +1,5 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 import { writeAuditLog } from '@/lib/admin/audit';
@@ -92,7 +91,7 @@ export async function createBusinessRule(
     rule_key: parsed.data.rule_key,
   });
 
-  revalidatePath('/admin/rules');
+
   return { data: data as BusinessRule };
 }
 
@@ -146,7 +145,7 @@ export async function updateBusinessRule(
     updates
   );
 
-  revalidatePath('/admin/rules');
+
   return { data: data as BusinessRule };
 }
 
@@ -181,6 +180,6 @@ export async function deleteBusinessRule(ruleId: string): Promise<ActionResult<v
     null
   );
 
-  revalidatePath('/admin/rules');
+
   return { data: undefined };
 }

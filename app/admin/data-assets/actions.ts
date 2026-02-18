@@ -1,6 +1,5 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 import { writeAuditLog } from '@/lib/admin/audit';
@@ -111,7 +110,7 @@ export async function createDataAsset(
     asset_key: parsed.data.asset_key,
   });
 
-  revalidatePath('/admin/data-assets');
+
   return { data: data as DataAsset };
 }
 
@@ -172,6 +171,6 @@ export async function updateDataAsset(
     updates
   );
 
-  revalidatePath('/admin/data-assets');
+
   return { data: data as DataAsset };
 }

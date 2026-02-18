@@ -9,7 +9,6 @@ import {
   AnimatedLeaderboard,
   TimeSeriesCombo,
   ConversionIndicator,
-  DataTable,
   Heatmap,
   StackedBarChart,
   WidgetErrorBoundary,
@@ -289,17 +288,6 @@ export function DashboardContent() {
         />
       </WidgetErrorBoundary>
 
-      {/* ================================================================ */}
-      {/* Data Table (tabular shape) */}
-      {/* ================================================================ */}
-      <WidgetErrorBoundary fallbackTitle="Data Table failed">
-        <DataTable
-          assetKey="candidate_call_count"
-          title="Recent Activity Log"
-          dateRange={dateRange}
-          pageSize={10}
-        />
-      </WidgetErrorBoundary>
     </div>
   );
 }

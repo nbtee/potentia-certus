@@ -1,6 +1,5 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 import { writeAuditLog } from '@/lib/admin/audit';
@@ -100,6 +99,6 @@ export async function updateContextDocument(
     { version: newVersion, content_length: parsed.data.content.length }
   );
 
-  revalidatePath('/admin/context-docs');
+
   return { data: data as ContextDocument };
 }

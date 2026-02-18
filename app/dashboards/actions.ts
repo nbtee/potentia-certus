@@ -1,6 +1,5 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 import type {
@@ -164,7 +163,6 @@ export async function createDashboard(
 
   if (error) return { error: error.message };
 
-  revalidatePath('/dashboards');
   return { data: data as Dashboard };
 }
 
@@ -200,8 +198,6 @@ export async function updateDashboard(
 
   if (error) return { error: error.message };
 
-  revalidatePath('/dashboards');
-  revalidatePath(`/dashboards/${id}`);
   return { data: data as Dashboard };
 }
 
@@ -225,7 +221,6 @@ export async function deleteDashboard(
 
   if (error) return { error: error.message };
 
-  revalidatePath('/dashboards');
   return { data: undefined };
 }
 
@@ -291,7 +286,6 @@ export async function addWidget(
     .update({ layout: newLayout })
     .eq('id', parsed.data.dashboardId);
 
-  revalidatePath(`/dashboards/${parsed.data.dashboardId}`);
   return { data: { widgetId: widget.id } };
 }
 
@@ -336,7 +330,6 @@ export async function removeWidget(
     .update({ layout: newLayout })
     .eq('id', dashboardId);
 
-  revalidatePath(`/dashboards/${dashboardId}`);
   return { data: undefined };
 }
 
@@ -458,6 +451,5 @@ export async function createFromTemplate(
     .update({ layout: newLayout })
     .eq('id', newDashboard.id);
 
-  revalidatePath('/dashboards');
   return { data: { ...newDashboard, layout: newLayout } as Dashboard };
 }

@@ -1,6 +1,5 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 import { writeAuditLog } from '@/lib/admin/audit';
@@ -105,7 +104,7 @@ export async function inviteUser(
     role: parsed.data.role,
   });
 
-  revalidatePath('/admin/users');
+
   return { data: profile as UserProfile };
 }
 
@@ -169,7 +168,7 @@ export async function updateUser(
     updates
   );
 
-  revalidatePath('/admin/users');
+
   return { data: data as UserProfile };
 }
 
@@ -194,7 +193,7 @@ export async function deactivateUser(
 
   await writeAuditLog('user.deactivate', 'user_profiles', userId);
 
-  revalidatePath('/admin/users');
+
   return { data: undefined };
 }
 
@@ -219,6 +218,6 @@ export async function reactivateUser(
 
   await writeAuditLog('user.reactivate', 'user_profiles', userId);
 
-  revalidatePath('/admin/users');
+
   return { data: undefined };
 }

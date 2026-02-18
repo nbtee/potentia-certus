@@ -1,6 +1,5 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { writeAuditLog } from '@/lib/admin/audit';
 import type { IngestionRun } from '@/lib/admin/types';
@@ -108,6 +107,6 @@ export async function triggerManualSync(
     source_table: sourceTable,
   });
 
-  revalidatePath('/admin/ingestion');
+
   return { data: data as IngestionRun };
 }

@@ -1,6 +1,5 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 import { writeAuditLog } from '@/lib/admin/audit';
@@ -98,7 +97,7 @@ export async function createTarget(
     target_value: parsed.data.target_value,
   });
 
-  revalidatePath('/admin/targets');
+
   return { data: data as ConsultantTarget };
 }
 
@@ -150,7 +149,7 @@ export async function updateTarget(
     updates
   );
 
-  revalidatePath('/admin/targets');
+
   return { data: data as ConsultantTarget };
 }
 
@@ -173,7 +172,7 @@ export async function deleteTarget(targetId: string): Promise<ActionResult<void>
 
   await writeAuditLog('target.delete', 'consultant_targets', targetId);
 
-  revalidatePath('/admin/targets');
+
   return { data: undefined };
 }
 
@@ -234,6 +233,6 @@ export async function bulkSetTeamTargets(
     member_count: members.length,
   });
 
-  revalidatePath('/admin/targets');
+
   return { data: { count: members.length } };
 }
