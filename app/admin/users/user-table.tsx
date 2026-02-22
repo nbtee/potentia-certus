@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import { type ColumnDef } from '@tanstack/react-table';
 import { AdminDataTable } from '@/components/admin/admin-data-table';
 import { AdminPageHeader } from '@/components/admin/admin-page-header';
@@ -25,6 +25,56 @@ const roleColors: Record<string, string> = {
   consultant: 'bg-gray-100 text-gray-800',
 };
 
+// ============================================================================
+// Row Actions (extracted to avoid capturing unstable refs in columns)
+// ============================================================================
+
+function RowActions({
+  user,
+  onEdit,
+  onDeactivate,
+  onReactivate,
+}: {
+  user: UserProfile;
+  onEdit: (u: UserProfile) => void;
+  onDeactivate: (id: string) => void;
+  onReactivate: (id: string) => void;
+}) {
+  return (
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => onEdit(user)}>
+          <Pencil className="mr-2 h-3.5 w-3.5" />
+          Edit
+        </DropdownMenuItem>
+        {user.is_active ? (
+          <DropdownMenuItem
+            className="text-red-600"
+            onClick={() => onDeactivate(user.id)}
+          >
+            <UserX className="mr-2 h-3.5 w-3.5" />
+            Deactivate
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem onClick={() => onReactivate(user.id)}>
+            <UserCheck className="mr-2 h-3.5 w-3.5" />
+            Reactivate
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+// ============================================================================
+// UserTable
+// ============================================================================
+
 export function UserTable() {
   const { data: users, isLoading } = useUsers();
   const deactivateMutation = useDeactivateUser();
@@ -34,108 +84,101 @@ export function UserTable() {
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
 
-  const columns: ColumnDef<UserProfile, unknown>[] = [
-    {
-      accessorFn: (row) =>
-        `${row.first_name ?? ''} ${row.last_name ?? ''}`.trim() || row.email,
-      id: 'name',
-      header: 'Name',
-      cell: ({ row }) => {
-        const u = row.original;
-        const name =
-          `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim() || u.email;
-        return (
-          <div>
-            <div className="font-medium">{name}</div>
-            <div className="text-xs text-gray-500">{u.email}</div>
-          </div>
-        );
+  // Use refs so column cell renderers always access the latest callbacks
+  // without needing to be recreated on every render
+  const deactivateRef = useRef(deactivateMutation);
+  deactivateRef.current = deactivateMutation;
+  const reactivateRef = useRef(reactivateMutation);
+  reactivateRef.current = reactivateMutation;
+
+  const handleEdit = useCallback((u: UserProfile) => {
+    setEditingUser(u);
+    setDialogOpen(true);
+  }, []);
+
+  const handleDeactivate = useCallback((id: string) => {
+    deactivateRef.current.mutate(id);
+  }, []);
+
+  const handleReactivate = useCallback((id: string) => {
+    reactivateRef.current.mutate(id);
+  }, []);
+
+  // Memoize columns so TanStack Table doesn't infinite re-render
+  const columns = useMemo<ColumnDef<UserProfile, unknown>[]>(
+    () => [
+      {
+        accessorFn: (row) =>
+          `${row.first_name ?? ''} ${row.last_name ?? ''}`.trim() || row.email,
+        id: 'name',
+        header: 'Name',
+        cell: ({ row }) => {
+          const u = row.original;
+          const name =
+            `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim() || u.email;
+          return (
+            <div>
+              <div className="font-medium">{name}</div>
+              <div className="text-xs text-gray-500">{u.email}</div>
+            </div>
+          );
+        },
       },
-    },
-    {
-      accessorKey: 'role',
-      header: 'Role',
-      cell: ({ getValue }) => {
-        const role = getValue() as string;
-        return (
-          <Badge variant="secondary" className={roleColors[role] ?? ''}>
-            {role.replace('_', ' ')}
-          </Badge>
-        );
+      {
+        accessorKey: 'role',
+        header: 'Role',
+        cell: ({ getValue }) => {
+          const role = getValue() as string;
+          return (
+            <Badge variant="secondary" className={roleColors[role] ?? ''}>
+              {role.replace('_', ' ')}
+            </Badge>
+          );
+        },
       },
-    },
-    {
-      id: 'team',
-      header: 'Team',
-      cell: ({ row }) => (
-        <span className="text-sm text-gray-600">
-          {row.original.hierarchy_node?.name ?? '-'}
-        </span>
-      ),
-    },
-    {
-      accessorKey: 'is_active',
-      header: 'Status',
-      cell: ({ getValue }) => {
-        const active = getValue() as boolean;
-        return (
-          <Badge
-            variant="secondary"
-            className={
-              active
-                ? 'bg-green-100 text-green-800'
-                : 'bg-red-100 text-red-800'
-            }
-          >
-            {active ? 'Active' : 'Deactivated'}
-          </Badge>
-        );
+      {
+        id: 'team',
+        header: 'Team',
+        cell: ({ row }) => (
+          <span className="text-sm text-gray-600">
+            {row.original.hierarchy_node?.name ?? '-'}
+          </span>
+        ),
       },
-    },
-    {
-      id: 'actions',
-      header: '',
-      cell: ({ row }) => {
-        const u = row.original;
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() => {
-                  setEditingUser(u);
-                  setDialogOpen(true);
-                }}
-              >
-                <Pencil className="mr-2 h-3.5 w-3.5" />
-                Edit
-              </DropdownMenuItem>
-              {u.is_active ? (
-                <DropdownMenuItem
-                  className="text-red-600"
-                  onClick={() => deactivateMutation.mutate(u.id)}
-                >
-                  <UserX className="mr-2 h-3.5 w-3.5" />
-                  Deactivate
-                </DropdownMenuItem>
-              ) : (
-                <DropdownMenuItem
-                  onClick={() => reactivateMutation.mutate(u.id)}
-                >
-                  <UserCheck className="mr-2 h-3.5 w-3.5" />
-                  Reactivate
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
+      {
+        accessorKey: 'is_active',
+        header: 'Status',
+        cell: ({ getValue }) => {
+          const active = getValue() as boolean;
+          return (
+            <Badge
+              variant="secondary"
+              className={
+                active
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-red-100 text-red-800'
+              }
+            >
+              {active ? 'Active' : 'Deactivated'}
+            </Badge>
+          );
+        },
       },
-    },
-  ];
+      {
+        id: 'actions',
+        header: '',
+        cell: ({ row }) => (
+          <RowActions
+            user={row.original}
+            onEdit={handleEdit}
+            onDeactivate={handleDeactivate}
+            onReactivate={handleReactivate}
+          />
+        ),
+      },
+    ],
+    [handleEdit, handleDeactivate, handleReactivate]
+  );
 
   return (
     <div>

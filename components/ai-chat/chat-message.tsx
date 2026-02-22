@@ -7,7 +7,7 @@ import type { BuilderResponse, AnswerResponse } from '@/lib/ai/types';
 
 interface ChatMessageProps {
   message: Message;
-  dashboardId: string;
+  dashboardId?: string;
   isLast: boolean;
 }
 

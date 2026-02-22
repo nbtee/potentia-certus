@@ -11,7 +11,7 @@ import type { BuilderResponse, WidgetPairing } from '@/lib/ai/types';
 
 interface BuilderApprovalProps {
   response: BuilderResponse;
-  dashboardId: string;
+  dashboardId?: string;
   disabled: boolean;
 }
 
@@ -27,6 +27,7 @@ export function BuilderApproval({ response, dashboardId, disabled }: BuilderAppr
   );
 
   async function approveWidget(pairing: WidgetPairing, index: number) {
+    if (!dashboardId) return;
     setLoading(index);
     setError(null);
 
@@ -45,6 +46,7 @@ export function BuilderApproval({ response, dashboardId, disabled }: BuilderAppr
   }
 
   async function approveAll() {
+    if (!dashboardId) return;
     setLoading('all');
     setError(null);
 
@@ -95,7 +97,7 @@ export function BuilderApproval({ response, dashboardId, disabled }: BuilderAppr
                 </span>
               </div>
 
-              {!isApproved && !isRejected && !disabled && (
+              {!isApproved && !isRejected && !disabled && dashboardId && (
                 <div className="flex items-center gap-1 ml-2 shrink-0">
                   <Button
                     size="sm"
@@ -133,7 +135,7 @@ export function BuilderApproval({ response, dashboardId, disabled }: BuilderAppr
         })}
       </div>
 
-      {!allDecided && !disabled && (
+      {!allDecided && !disabled && dashboardId && (
         <div className="mt-3 flex gap-2">
           <Button
             size="sm"
@@ -154,6 +156,12 @@ export function BuilderApproval({ response, dashboardId, disabled }: BuilderAppr
             )}
           </Button>
         </div>
+      )}
+
+      {!allDecided && !disabled && !dashboardId && (
+        <p className="mt-3 text-xs text-amber-600">
+          Select a target dashboard above to add these widgets.
+        </p>
       )}
 
       {error && (

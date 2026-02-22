@@ -192,7 +192,7 @@ export async function POST(req: Request) {
           reasoning: z.string().describe('Brief explanation of how the answer was derived'),
           data_asset: z.string().describe('The asset_key to query'),
           parameters: z.record(z.unknown()).default({}).describe('Query parameters'),
-          answer: z.string().describe('Natural language answer to the user question'),
+          answer: z.string().describe('A template answer to the user question. The system will replace this with real queried data, so use a brief placeholder like "See results below."'),
           offer_persist: z.boolean().describe('Whether this answer could be useful as a dashboard widget'),
           unmatched_terms: z.array(z.string()).optional().describe('Terms that could not be mapped to data assets'),
         }),
@@ -207,12 +207,82 @@ export async function POST(req: Request) {
             }
           }
 
+          // Actually query the data asset to get real values
+          let resolvedAnswer = answer;
+          try {
+            const { data: asset } = await supabase
+              .from('data_assets')
+              .select('display_name, metadata')
+              .eq('asset_key', data_asset)
+              .single();
+
+            if (asset) {
+              const activityTypes = (asset.metadata as Record<string, unknown>)?.activity_types as string[] | undefined;
+
+              // Query activities with consultant names for a full breakdown
+              let query = supabase
+                .from('activities')
+                .select('consultant_id, user_profiles(display_name, first_name, last_name)');
+
+              if (activityTypes?.length) {
+                query = query.in('activity_type', activityTypes);
+              }
+
+              // Apply date range from parameters if provided
+              const dateRange = parameters?.dateRange as { start?: string; end?: string } | undefined;
+              if (dateRange?.start) {
+                query = query.gte('activity_date', dateRange.start);
+              }
+              if (dateRange?.end) {
+                query = query.lte('activity_date', dateRange.end);
+              }
+
+              const { data: rows } = await query;
+
+              if (rows && rows.length > 0) {
+                // Group by consultant
+                const grouped = new Map<string, { count: number; name: string }>();
+                for (const row of rows) {
+                  const id = row.consultant_id;
+                  if (!id) continue;
+                  const p = Array.isArray(row.user_profiles) ? row.user_profiles[0] : row.user_profiles;
+                  const name =
+                    (p as Record<string, string> | null)?.display_name ||
+                    ((p as Record<string, string> | null)?.first_name && (p as Record<string, string> | null)?.last_name
+                      ? `${(p as Record<string, string>).first_name} ${(p as Record<string, string>).last_name}`
+                      : 'Unknown');
+                  const existing = grouped.get(id) || { count: 0, name };
+                  grouped.set(id, { count: existing.count + 1, name });
+                }
+
+                const sorted = Array.from(grouped.values()).sort((a, b) => b.count - a.count);
+                const total = rows.length;
+
+                // Build formatted answer with real data
+                const topN = sorted.slice(0, 10);
+                const lines = topN.map(
+                  (entry, i) => `${i + 1}. ${entry.name}: ${entry.count.toLocaleString()}`
+                );
+
+                resolvedAnswer = `${asset.display_name} — ${total.toLocaleString()} total\n\nTop performers:\n${lines.join('\n')}`;
+
+                if (sorted.length > 10) {
+                  resolvedAnswer += `\n\n...and ${sorted.length - 10} more consultants`;
+                }
+              } else {
+                resolvedAnswer = `${asset.display_name} — 0 activities found for the specified period.`;
+              }
+            }
+          } catch {
+            // If the query fails, fall back to the AI's original answer
+          }
+
           return {
             mode: 'answer' as const,
             reasoning,
             data_asset,
             parameters,
-            answer,
+            answer: resolvedAnswer,
             offer_persist,
             unmatched_terms,
           };

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -48,15 +48,21 @@ export function AdminDataTable<TData>({
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
 
+  // Memoize columnFilters to prevent infinite re-render loop —
+  // a new array reference on every render causes useReactTable's
+  // internal setState to cascade into an infinite loop
+  const columnFilters = useMemo(
+    () => (searchColumn ? [{ id: searchColumn, value: globalFilter }] : []),
+    [searchColumn, globalFilter]
+  );
+
   const table = useReactTable({
     data,
     columns,
     state: {
       sorting,
       globalFilter: searchColumn ? undefined : globalFilter,
-      columnFilters: searchColumn
-        ? [{ id: searchColumn, value: globalFilter }]
-        : [],
+      columnFilters,
     },
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),

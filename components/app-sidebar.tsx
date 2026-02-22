@@ -20,6 +20,7 @@ import {
   Activity,
   ScrollText,
   Sliders,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -49,6 +50,12 @@ const navigation: NavItem[] = [
     name: 'My Dashboards',
     href: '/dashboards',
     icon: Layers,
+    roles: ['consultant', 'team_lead', 'manager', 'admin'],
+  },
+  {
+    name: 'AI Chat',
+    href: '/chat',
+    icon: Sparkles,
     roles: ['consultant', 'team_lead', 'manager', 'admin'],
   },
   {
