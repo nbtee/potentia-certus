@@ -34,6 +34,7 @@ export function ScopePicker() {
   }, [tree]);
 
   const label = buildScopeLabel(preset, selectedNodeIds, tree);
+  const showTree = preset === 'national' || preset === 'custom';
 
   const handlePreset = (p: ScopePreset) => {
     setScope({ preset: p, selectedNodeIds: [] });
@@ -84,9 +85,9 @@ export function ScopePicker() {
           <ChevronDown className="h-4 w-4 shrink-0 text-gray-400" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[280px] p-0" align="start">
+      <PopoverContent className="w-[280px] bg-white p-0" align="start">
         {/* Preset buttons */}
-        <div className="flex gap-1 p-3 border-b border-gray-100">
+        <div className={`flex gap-1 p-3${showTree ? ' border-b border-gray-100' : ''}`}>
           <PresetButton
             icon={<User className="h-3.5 w-3.5" />}
             label="Me"
@@ -108,51 +109,53 @@ export function ScopePicker() {
           />
         </div>
 
-        {/* Checkbox tree */}
-        <div className="max-h-[300px] overflow-y-auto p-3 space-y-3">
-          {isLoading ? (
-            <p className="text-sm text-gray-400">Loading teams...</p>
-          ) : (
-            regions.map((region) => (
-              <div key={region.id}>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <Checkbox
-                    checked={isRegionChecked(region)}
-                    ref={(el) => {
-                      if (el) {
-                        (el as unknown as HTMLButtonElement).dataset.state =
-                          isRegionIndeterminate(region) ? 'indeterminate' :
-                          isRegionChecked(region) ? 'checked' : 'unchecked';
-                      }
-                    }}
-                    onCheckedChange={(checked) =>
-                      handleRegionToggle(region, checked === true)
-                    }
-                  />
-                  <span className="text-sm font-medium text-gray-700">
-                    {region.name}
-                  </span>
-                </label>
-                <div className="ml-6 mt-1.5 space-y-1.5">
-                  {region.teams.map((team) => (
-                    <label
-                      key={team.id}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <Checkbox
-                        checked={selectedNodeIds.includes(team.id)}
-                        onCheckedChange={(checked) =>
-                          handleTeamToggle(team.id, checked === true)
+        {/* Checkbox tree — only shown for national/custom presets */}
+        {showTree && (
+          <div className="max-h-[300px] overflow-y-auto p-3 space-y-3">
+            {isLoading ? (
+              <p className="text-sm text-gray-400">Loading teams...</p>
+            ) : (
+              regions.map((region) => (
+                <div key={region.id}>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={isRegionChecked(region)}
+                      ref={(el) => {
+                        if (el) {
+                          (el as unknown as HTMLButtonElement).dataset.state =
+                            isRegionIndeterminate(region) ? 'indeterminate' :
+                            isRegionChecked(region) ? 'checked' : 'unchecked';
                         }
-                      />
-                      <span className="text-sm text-gray-600">{team.name}</span>
-                    </label>
-                  ))}
+                      }}
+                      onCheckedChange={(checked) =>
+                        handleRegionToggle(region, checked === true)
+                      }
+                    />
+                    <span className="text-sm font-medium text-gray-700">
+                      {region.name}
+                    </span>
+                  </label>
+                  <div className="ml-6 mt-1.5 space-y-1.5">
+                    {region.teams.map((team) => (
+                      <label
+                        key={team.id}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
+                        <Checkbox
+                          checked={selectedNodeIds.includes(team.id)}
+                          onCheckedChange={(checked) =>
+                            handleTeamToggle(team.id, checked === true)
+                          }
+                        />
+                        <span className="text-sm text-gray-600">{team.name}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
+              ))
+            )}
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );
