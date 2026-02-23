@@ -167,12 +167,12 @@ export function AuditTable() {
         </div>
         <div className="grid gap-1">
           <Label className="text-xs">Table</Label>
-          <Select value={filterTable} onValueChange={setFilterTable}>
+          <Select value={filterTable || '__all__'} onValueChange={(v) => setFilterTable(v === '__all__' ? '' : v)}>
             <SelectTrigger className="h-8 w-40">
               <SelectValue placeholder="All tables" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All tables</SelectItem>
+              <SelectItem value="__all__">All tables</SelectItem>
               <SelectItem value="user_profiles">user_profiles</SelectItem>
               <SelectItem value="org_hierarchy">org_hierarchy</SelectItem>
               <SelectItem value="business_rules">business_rules</SelectItem>

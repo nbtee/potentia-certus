@@ -21,6 +21,9 @@ node_modules
 
 # Testing
 coverage
+e2e/.auth/
+test-results/
+playwright-report/
 
 # Misc
 .vercel
