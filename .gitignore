@@ -28,8 +28,7 @@ playwright-report/
 # Misc
 .vercel
 
-# Sync scripts (contain hardcoded credentials)
-scripts/full-sync.js
+# Sync scripts (provision-users still has inline keys)
 scripts/provision-users.js
 
 # Design system source files

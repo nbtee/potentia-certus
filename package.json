@@ -11,7 +11,8 @@
     "test:e2e": "npx playwright test --config=e2e/playwright.config.ts",
     "test:e2e:ui": "npx playwright test --config=e2e/playwright.config.ts --ui",
     "test:e2e:smoke": "npx playwright test --config=e2e/playwright.config.ts smoke",
-    "test:e2e:headed": "npx playwright test --config=e2e/playwright.config.ts --headed"
+    "test:e2e:headed": "npx playwright test --config=e2e/playwright.config.ts --headed",
+    "sync:full": "node scripts/full-sync.js"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.0.0",
@@ -55,6 +56,7 @@
     "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4.1.18",
     "@tailwindcss/vite": "^4.0.0",
+    "@types/mssql": "^9.1.9",
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
