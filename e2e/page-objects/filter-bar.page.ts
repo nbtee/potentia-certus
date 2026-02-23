@@ -18,9 +18,9 @@ export class FilterBarPage {
     return this.container.getByRole('combobox').first();
   }
 
-  /** Get the Scope select trigger (second combobox in the filter bar) */
+  /** Get the Scope picker trigger button (Popover trigger next to "Scope" label) */
   scopeTrigger() {
-    return this.container.getByRole('combobox').last();
+    return this.container.locator('label').filter({ hasText: 'Scope' }).locator('..').getByRole('button');
   }
 
   /** Change the time period preset */
@@ -29,10 +29,12 @@ export class FilterBarPage {
     await this.page.getByRole('option', { name: label }).click();
   }
 
-  /** Change the hierarchy scope */
+  /** Change the hierarchy scope by clicking a preset button in the popover */
   async setScope(label: string) {
     await this.scopeTrigger().click();
-    await this.page.getByRole('option', { name: label }).click();
+    // Preset buttons are inside the popover content
+    const popover = this.page.locator('[data-radix-popper-content-wrapper]');
+    await popover.getByRole('button', { name: label }).click();
   }
 
   /** Reset all filters to defaults */
@@ -40,12 +42,14 @@ export class FilterBarPage {
     await this.resetButton.click();
   }
 
-  /** Get all available scope options by opening the dropdown */
+  /** Get all available scope preset labels by opening the popover */
   async getScopeOptions(): Promise<string[]> {
     await this.scopeTrigger().click();
-    const options = await this.page.getByRole('option').allTextContents();
-    // Close dropdown by pressing Escape
+    const popover = this.page.locator('[data-radix-popper-content-wrapper]');
+    // Get preset buttons (not checkboxes)
+    const presets = popover.locator('button:not([role="checkbox"])');
+    const labels = await presets.allTextContents();
     await this.page.keyboard.press('Escape');
-    return options;
+    return labels;
   }
 }

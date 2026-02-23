@@ -56,20 +56,22 @@ test.describe('Filters', () => {
     await expect(adminPage.getByRole('button', { name: /pick dates/i })).toBeVisible();
   });
 
-  test('scope select is visible', async ({ adminPage }) => {
+  test('scope picker is visible', async ({ adminPage }) => {
     await openDashboardWithFilters(adminPage);
     const filters = new FilterBarPage(adminPage);
     await expect(filters.scopeTrigger()).toBeVisible();
   });
 
-  test('admin sees National scope option', async ({ adminPage }) => {
+  test('admin sees all scope presets', async ({ adminPage }) => {
     await openDashboardWithFilters(adminPage);
     const filters = new FilterBarPage(adminPage);
     const options = await filters.getScopeOptions();
+    expect(options).toContain('Me');
+    expect(options).toContain('My Team');
     expect(options).toContain('National');
   });
 
-  test('consultant has limited scope options', async ({ consultantPage }) => {
+  test('consultant sees all scope presets', async ({ consultantPage }) => {
     // Consultant may have no dashboards — use template to create one
     const list = new DashboardListPage(consultantPage);
     await list.goto();
@@ -94,11 +96,13 @@ test.describe('Filters', () => {
     const filters = new FilterBarPage(consultantPage);
     const options = await filters.getScopeOptions();
 
-    expect(options).toContain('My Performance');
-    expect(options).not.toContain('National');
+    // All users now see all scope options (no role-gating)
+    expect(options).toContain('Me');
+    expect(options).toContain('My Team');
+    expect(options).toContain('National');
   });
 
-  test('changing scope updates the select', async ({ adminPage }) => {
+  test('changing scope updates the trigger label', async ({ adminPage }) => {
     await openDashboardWithFilters(adminPage);
     const filters = new FilterBarPage(adminPage);
 
