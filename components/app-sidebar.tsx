@@ -53,6 +53,12 @@ const navigation: NavItem[] = [
     roles: ['consultant', 'team_lead', 'manager', 'admin'],
   },
   {
+    name: 'My Targets',
+    href: '/targets',
+    icon: Target,
+    roles: ['consultant', 'team_lead', 'manager', 'admin'],
+  },
+  {
     name: 'AI Chat',
     href: '/chat',
     icon: Sparkles,

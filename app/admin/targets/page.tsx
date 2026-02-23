@@ -1,5 +1,5 @@
-import { TargetsTable } from './targets-table';
+import { TargetsGrid } from './targets-grid';
 
 export default function TargetsPage() {
-  return <TargetsTable />;
+  return <TargetsGrid />;
 }

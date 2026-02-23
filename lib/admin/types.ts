@@ -140,3 +140,41 @@ export interface AuditLogEntry {
 }
 
 export type AdminRole = 'consultant' | 'team_lead' | 'manager' | 'admin';
+
+// =============================================================================
+// Monthly Targets Grid types
+// =============================================================================
+
+export interface TargetConsultantRow {
+  consultantId: string;
+  firstName: string;
+  lastName: string;
+  /** Map of target_type → { id, value } for existing targets */
+  targets: Record<string, { id: string; value: number }>;
+}
+
+export interface TargetTeamGroup {
+  teamNodeId: string;
+  teamName: string;
+  consultants: TargetConsultantRow[];
+}
+
+export interface TargetRegionGroup {
+  regionNodeId: string;
+  regionName: string;
+  teams: TargetTeamGroup[];
+}
+
+export interface MonthlyTargetGrid {
+  monthStart: string;
+  monthEnd: string;
+  regions: TargetRegionGroup[];
+}
+
+export interface UpsertTargetInput {
+  consultant_id: string;
+  target_type: string;
+  target_value: number;
+  period_start: string;
+  period_end: string;
+}

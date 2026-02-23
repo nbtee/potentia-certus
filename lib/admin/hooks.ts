@@ -21,12 +21,11 @@ import {
   deleteBusinessRule,
 } from '@/app/admin/rules/actions';
 import {
-  listTargets,
-  createTarget,
-  updateTarget,
-  deleteTarget,
-  bulkSetTeamTargets,
+  listTargetsForMonth,
+  bulkUpsertTargets,
+  copyFromPreviousMonth,
 } from '@/app/admin/targets/actions';
+import type { UpsertTargetInput } from '@/lib/admin/types';
 import {
   listDataAssets,
   createDataAsset,
@@ -55,7 +54,8 @@ export const adminKeys = {
   users: ['admin', 'users'] as const,
   hierarchy: ['admin', 'hierarchy'] as const,
   rules: ['admin', 'rules'] as const,
-  targets: ['admin', 'targets'] as const,
+  targets: (monthStart?: string) =>
+    ['admin', 'targets', monthStart ?? 'all'] as const,
   dataAssets: ['admin', 'data-assets'] as const,
   contextDocs: ['admin', 'context-docs'] as const,
   synonyms: ['admin', 'synonyms'] as const,
@@ -228,64 +228,52 @@ export function useDeleteBusinessRule() {
 }
 
 // =============================================================================
-// Targets
+// Targets (Monthly Grid)
 // =============================================================================
 
-export function useTargets() {
+export function useMonthlyTargets(monthStart: string) {
   return useQuery({
-    queryKey: adminKeys.targets,
+    queryKey: adminKeys.targets(monthStart),
     queryFn: async () => {
-      const result = await listTargets();
+      const result = await listTargetsForMonth(monthStart);
       if (result.error) throw new Error(result.error);
       return result.data;
     },
   });
 }
 
-export function useCreateTarget() {
+export function useBulkUpsertTargets() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: Parameters<typeof createTarget>[0]) => {
-      const result = await createTarget(input);
+    mutationFn: async (targets: UpsertTargetInput[]) => {
+      const result = await bulkUpsertTargets(targets);
       if (result.error) throw new Error(result.error);
       return result.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: adminKeys.targets }),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ['admin', 'targets'] }),
   });
 }
 
-export function useUpdateTarget() {
+export function useCopyFromPreviousMonth() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: Parameters<typeof updateTarget>[0]) => {
-      const result = await updateTarget(input);
+    mutationFn: async ({
+      sourceMonthStart,
+      destMonthStart,
+    }: {
+      sourceMonthStart: string;
+      destMonthStart: string;
+    }) => {
+      const result = await copyFromPreviousMonth(
+        sourceMonthStart,
+        destMonthStart
+      );
       if (result.error) throw new Error(result.error);
       return result.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: adminKeys.targets }),
-  });
-}
-
-export function useDeleteTarget() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (targetId: string) => {
-      const result = await deleteTarget(targetId);
-      if (result.error) throw new Error(result.error);
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: adminKeys.targets }),
-  });
-}
-
-export function useBulkSetTeamTargets() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (input: Parameters<typeof bulkSetTeamTargets>[0]) => {
-      const result = await bulkSetTeamTargets(input);
-      if (result.error) throw new Error(result.error);
-      return result.data;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: adminKeys.targets }),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ['admin', 'targets'] }),
   });
 }
 
