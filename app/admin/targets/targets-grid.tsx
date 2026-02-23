@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { AdminPageHeader } from '@/components/admin/admin-page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, Save, Copy, Undo2, CheckCircle2, XCircle } from 'lucide-react';
+import { Loader2, Save, Copy, Undo2, Check, XCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { MonthSelector } from './month-selector';
 import {
   TargetSpreadsheet,
@@ -35,36 +36,35 @@ import {
   navigateMonth,
 } from '@/lib/targets/month-utils';
 
-interface StatusMessage {
-  type: 'success' | 'error';
-  text: string;
-}
+type SaveState = 'idle' | 'saving' | 'saved' | 'error';
+type CopyState = 'idle' | 'copying' | 'copied' | 'error';
 
 export function TargetsGrid() {
   const [currentMonth, setCurrentMonth] = useState(getCurrentMonthStart);
   const monthStart = getMonthStart(currentMonth);
-  const [status, setStatus] = useState<StatusMessage | null>(null);
 
   const { data: grid, isLoading } = useMonthlyTargets(monthStart);
   const upsertMutation = useBulkUpsertTargets();
   const copyMutation = useCopyFromPreviousMonth();
 
-  // Dirty cells: key = "consultantId:targetType", value = new numeric value
   const [dirtyMap, setDirtyMap] = useState<Map<string, number>>(new Map());
   const [showCopyConfirm, setShowCopyConfirm] = useState(false);
+  const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [saveMessage, setSaveMessage] = useState('');
+  const [copyState, setCopyState] = useState<CopyState>('idle');
+  const [copyMessage, setCopyMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const isDirty = dirtyMap.size > 0;
 
-  function showStatus(type: 'success' | 'error', text: string) {
-    setStatus({ type, text });
-    setTimeout(() => setStatus(null), 4000);
-  }
-
-  // Reset dirty state when month changes
   const handleMonthChange = useCallback((month: Date) => {
     setCurrentMonth(month);
     setDirtyMap(new Map());
-    setStatus(null);
+    setSaveState('idle');
+    setCopyState('idle');
+    setErrorMessage('');
   }, []);
 
   const handleCellChange = useCallback(
@@ -79,24 +79,35 @@ export function TargetsGrid() {
         }
         return next;
       });
+      // Clear saved/error state when user starts editing again
+      if (saveState === 'saved' || saveState === 'error') {
+        setSaveState('idle');
+        setErrorMessage('');
+      }
     },
-    []
+    [saveState]
   );
 
   async function handleSave() {
     if (!grid || dirtyMap.size === 0) return;
+    clearTimeout(saveTimerRef.current);
+    setSaveState('saving');
+    setErrorMessage('');
+    const count = dirtyMap.size;
     const payload = buildUpsertPayload(
       dirtyMap,
       grid.monthStart,
       grid.monthEnd
     );
     try {
-      const result = await upsertMutation.mutateAsync(payload);
-      showStatus('success', `${result?.count ?? dirtyMap.size} target(s) saved.`);
+      await upsertMutation.mutateAsync(payload);
       setDirtyMap(new Map());
+      setSaveState('saved');
+      setSaveMessage(`${count} target${count !== 1 ? 's' : ''} saved`);
+      saveTimerRef.current = setTimeout(() => setSaveState('idle'), 3000);
     } catch (err) {
-      showStatus(
-        'error',
+      setSaveState('error');
+      setErrorMessage(
         err instanceof Error ? err.message : 'Failed to save targets'
       );
     }
@@ -104,6 +115,8 @@ export function TargetsGrid() {
 
   async function handleCopy() {
     if (!grid) return;
+    clearTimeout(copyTimerRef.current);
+    setCopyState('copying');
     const prevMonth = navigateMonth(currentMonth, -1);
     const prevStart = getMonthStart(prevMonth);
     try {
@@ -112,29 +125,27 @@ export function TargetsGrid() {
         destMonthStart: grid.monthStart,
       });
       setShowCopyConfirm(false);
-      if (!result?.count) {
-        showStatus(
-          'success',
-          'Nothing to copy — all cells already have values, or no targets exist in the previous month.'
-        );
-      } else {
-        showStatus(
-          'success',
-          `${result.count} target(s) copied from previous month.`
-        );
-      }
+      setCopyState('copied');
+      setCopyMessage(
+        !result?.count
+          ? 'Nothing to copy'
+          : `${result.count} target${result.count !== 1 ? 's' : ''} copied`
+      );
+      copyTimerRef.current = setTimeout(() => setCopyState('idle'), 3000);
     } catch (err) {
       setShowCopyConfirm(false);
-      showStatus(
-        'error',
+      setCopyState('error');
+      setErrorMessage(
         err instanceof Error ? err.message : 'Failed to copy targets'
       );
+      copyTimerRef.current = setTimeout(() => setCopyState('idle'), 4000);
     }
   }
 
   function handleDiscard() {
     setDirtyMap(new Map());
-    setStatus(null);
+    setSaveState('idle');
+    setErrorMessage('');
   }
 
   return (
@@ -148,24 +159,6 @@ export function TargetsGrid() {
           onChange={handleMonthChange}
         />
       </AdminPageHeader>
-
-      {/* Status banner */}
-      {status && (
-        <div
-          className={`mb-4 flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm ${
-            status.type === 'success'
-              ? 'bg-emerald-50 text-emerald-800'
-              : 'bg-red-50 text-red-800'
-          }`}
-        >
-          {status.type === 'success' ? (
-            <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
-          ) : (
-            <XCircle className="h-4 w-4 flex-shrink-0" />
-          )}
-          {status.text}
-        </div>
-      )}
 
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
@@ -199,22 +192,55 @@ export function TargetsGrid() {
           </Tabs>
 
           {/* Action bar */}
-          <div className="mt-4 flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3">
+          <div
+            className={cn(
+              'mt-4 flex items-center gap-3 rounded-lg border p-3 transition-colors duration-300',
+              saveState === 'saved'
+                ? 'border-emerald-200 bg-emerald-50'
+                : saveState === 'error' || copyState === 'error'
+                  ? 'border-red-200 bg-red-50'
+                  : 'border-gray-200 bg-white'
+            )}
+          >
+            {/* Copy button with inline state */}
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowCopyConfirm(true)}
-              disabled={copyMutation.isPending}
+              disabled={copyState === 'copying'}
+              className={cn(
+                'transition-all duration-200',
+                copyState === 'copied' &&
+                  'border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-700'
+              )}
             >
-              {copyMutation.isPending ? (
+              {copyState === 'copying' ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : copyState === 'copied' ? (
+                <Check className="mr-2 h-4 w-4" />
               ) : (
                 <Copy className="mr-2 h-4 w-4" />
               )}
-              Copy from Previous Month
+              {copyState === 'copied' ? copyMessage : 'Copy from Previous Month'}
             </Button>
 
             <div className="flex-1" />
+
+            {/* Inline error message */}
+            {(saveState === 'error' || copyState === 'error') && errorMessage && (
+              <span className="flex items-center gap-1.5 text-sm text-red-600">
+                <XCircle className="h-4 w-4 flex-shrink-0" />
+                {errorMessage}
+              </span>
+            )}
+
+            {/* Inline saved confirmation */}
+            {saveState === 'saved' && (
+              <span className="flex items-center gap-1.5 text-sm font-medium text-emerald-600 animate-in fade-in duration-200">
+                <Check className="h-4 w-4" />
+                {saveMessage}
+              </span>
+            )}
 
             {isDirty && (
               <Button
@@ -223,25 +249,44 @@ export function TargetsGrid() {
                 onClick={handleDiscard}
               >
                 <Undo2 className="mr-2 h-4 w-4" />
-                Discard Changes
+                Discard
               </Button>
             )}
 
+            {/* Save button with tri-state */}
             <Button
               size="sm"
               onClick={handleSave}
-              disabled={!isDirty || upsertMutation.isPending}
-            >
-              {upsertMutation.isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="mr-2 h-4 w-4" />
+              disabled={
+                (!isDirty && saveState !== 'saved') ||
+                saveState === 'saving'
+              }
+              className={cn(
+                'min-w-[140px] transition-all duration-200',
+                saveState === 'saved' &&
+                  'bg-emerald-600 hover:bg-emerald-600'
               )}
-              Save Changes
-              {isDirty && (
-                <span className="ml-1.5 rounded-full bg-white/20 px-1.5 text-xs">
-                  {dirtyMap.size}
-                </span>
+            >
+              {saveState === 'saving' ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : saveState === 'saved' ? (
+                <>
+                  <Check className="mr-2 h-4 w-4" />
+                  Saved
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Changes
+                  {isDirty && (
+                    <span className="ml-1.5 rounded-full bg-white/20 px-1.5 text-xs">
+                      {dirtyMap.size}
+                    </span>
+                  )}
+                </>
               )}
             </Button>
           </div>
