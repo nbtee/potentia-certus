@@ -136,6 +136,8 @@ export interface DataAssetParams {
     };
     hierarchyNodeId?: string;
     consultantId?: string;
+    /** Resolved consultant UUIDs from scope selection. null = no filter (national). */
+    consultantIds?: string[] | null;
     teamId?: string;
     regionId?: string;
     additionalFilters?: Record<string, unknown>;

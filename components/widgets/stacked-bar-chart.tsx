@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { isCategorical, type Categorical } from '@/lib/data/shape-contracts';
 import { formatValue } from '@/lib/utils/format';
-import { queryCategoricalMultiSeries } from '@/lib/data/data-asset-queries';
+import { useWidgetData } from '@/lib/data/use-widget-data';
 import type { DateRange } from '@/lib/contexts/filter-context';
 import { motion } from 'framer-motion';
 import {
@@ -39,38 +38,14 @@ export function StackedBarChart({
   limit = 8,
   height = 350,
 }: StackedBarChartProps) {
-  const [data, setData] = useState<Categorical | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const { data: response, isLoading, error } = useWidgetData({
+    assetKey,
+    shape: 'categorical',
+    filters: { dateRange },
+    limit,
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-    setIsLoading(true);
-    setError(null);
-
-    queryCategoricalMultiSeries({
-      assetKey,
-      shape: 'categorical',
-      filters: { dateRange },
-      limit,
-    })
-      .then((result) => {
-        if (!cancelled) {
-          setData(result);
-          setIsLoading(false);
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err : new Error(String(err)));
-          setIsLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [assetKey, dateRange, limit]);
+  const data = response?.data as Categorical | undefined;
 
   if (isLoading) {
     return (
@@ -96,7 +71,9 @@ export function StackedBarChart({
           <AlertCircle className="h-5 w-5 text-red-600" />
           <div>
             <h3 className="font-semibold text-red-900">Failed to load data</h3>
-            <p className="mt-1 text-sm text-red-700">{error.message}</p>
+            <p className="mt-1 text-sm text-red-700">
+              {error instanceof Error ? error.message : 'Unknown error'}
+            </p>
           </div>
         </div>
       </motion.div>

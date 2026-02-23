@@ -3,34 +3,61 @@
  *
  * Global state management for dashboard filters.
  * Provides date range and hierarchy scope to all widgets.
+ *
+ * Scope is resolved to consultant UUIDs so widgets can filter data
+ * without knowing about the hierarchy structure.
  */
 
 'use client';
 
-import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  type ReactNode,
+} from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useHierarchyTree, useConsultantMap } from '@/lib/hierarchy/use-hierarchy';
+import {
+  expandNodeIds,
+  resolveConsultantIds,
+  getTeamSiblingIds,
+} from '@/lib/hierarchy/resolve-scope';
 
 export interface DateRange {
   start: string; // ISO date string
   end: string;
 }
 
-export type HierarchyScope = 'self' | 'my-team' | 'region' | 'national';
+export type ScopePreset = 'self' | 'my-team' | 'custom' | 'national';
+
+export interface ScopeSelection {
+  preset: ScopePreset;
+  selectedNodeIds: string[]; // org_hierarchy UUIDs for custom
+}
 
 export interface FilterState {
   dateRange: DateRange;
-  hierarchyScope: HierarchyScope;
-  consultantId?: string;
-  teamId?: string;
-  regionId?: string;
+  scope: ScopeSelection;
 }
 
 interface FilterContextType {
   filters: FilterState;
   setDateRange: (range: DateRange) => void;
-  setHierarchyScope: (scope: HierarchyScope) => void;
-  setConsultantId: (id: string | undefined) => void;
+  setScope: (scope: ScopeSelection) => void;
   resetFilters: () => void;
+  /** Resolved consultant IDs for current scope. null = no filter (national). */
+  resolvedConsultantIds: string[] | null;
+  /** True while hierarchy/consultant data is loading */
+  isScopeLoading: boolean;
+  /** User's own auth ID */
+  userId: string;
+  /** User's hierarchy node ID */
+  userHierarchyNodeId: string | null;
 }
 
 const FilterContext = createContext<FilterContextType | undefined>(undefined);
@@ -67,38 +94,61 @@ export function calculateDateRange(preset: string): DateRange {
 }
 
 // Default filter state
+const DEFAULT_SCOPE: ScopeSelection = { preset: 'self', selectedNodeIds: [] };
+
 const DEFAULT_FILTERS: FilterState = {
   dateRange: calculateDateRange('30d'),
-  hierarchyScope: 'my-team',
+  scope: DEFAULT_SCOPE,
 };
 
-export function FilterProvider({ children }: { children: ReactNode }) {
+interface FilterProviderProps {
+  children: ReactNode;
+  userId: string;
+  userHierarchyNodeId: string | null;
+}
+
+export function FilterProvider({
+  children,
+  userId,
+  userHierarchyNodeId,
+}: FilterProviderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  // Hierarchy data for scope resolution
+  const { data: tree = [], isLoading: treeLoading } = useHierarchyTree();
+  const { data: consultants = [], isLoading: consultantsLoading } = useConsultantMap();
 
   // Initialize from URL params if available
   const [filters, setFilters] = useState<FilterState>(() => {
     const urlDateStart = searchParams.get('dateStart');
     const urlDateEnd = searchParams.get('dateEnd');
-    const urlScope = searchParams.get('scope');
-    const validScopes: HierarchyScope[] = ['self', 'my-team', 'region', 'national'];
-    const scope = validScopes.includes(urlScope as HierarchyScope)
-      ? (urlScope as HierarchyScope)
-      : DEFAULT_FILTERS.hierarchyScope;
+    const urlScope = searchParams.get('scope') as ScopePreset | null;
+    const urlNodes = searchParams.get('nodes');
+
+    const validPresets: ScopePreset[] = ['self', 'my-team', 'custom', 'national'];
+    const preset = validPresets.includes(urlScope as ScopePreset)
+      ? (urlScope as ScopePreset)
+      : DEFAULT_SCOPE.preset;
+
+    const selectedNodeIds =
+      preset === 'custom' && urlNodes
+        ? urlNodes.split(',').filter(Boolean)
+        : [];
 
     return {
-      dateRange: urlDateStart && urlDateEnd
-        ? { start: urlDateStart, end: urlDateEnd }
-        : DEFAULT_FILTERS.dateRange,
-      hierarchyScope: scope,
+      dateRange:
+        urlDateStart && urlDateEnd
+          ? { start: urlDateStart, end: urlDateEnd }
+          : DEFAULT_FILTERS.dateRange,
+      scope: { preset, selectedNodeIds },
     };
   });
 
-  // Sync URL params whenever filters change (as a side effect, not during render)
+  // Sync URL params whenever filters change
   const isInitialMount = useRef(true);
   useEffect(() => {
-    // Skip the initial mount — URL already has the right params (or defaults)
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
@@ -108,27 +158,60 @@ export function FilterProvider({ children }: { children: ReactNode }) {
 
     params.set('dateStart', filters.dateRange.start);
     params.set('dateEnd', filters.dateRange.end);
-    params.set('scope', filters.hierarchyScope);
+    params.set('scope', filters.scope.preset);
 
-    if (filters.consultantId) {
-      params.set('consultantId', filters.consultantId);
+    if (filters.scope.preset === 'custom' && filters.scope.selectedNodeIds.length > 0) {
+      params.set('nodes', filters.scope.selectedNodeIds.join(','));
     } else {
-      params.delete('consultantId');
+      params.delete('nodes');
     }
+
+    // Remove legacy params
+    params.delete('consultantId');
 
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }, [filters, pathname, router, searchParams]);
+
+  // Resolve scope to consultant IDs
+  const resolvedConsultantIds = useMemo<string[] | null>(() => {
+    if (treeLoading || consultantsLoading) return null;
+
+    const { preset, selectedNodeIds } = filters.scope;
+
+    switch (preset) {
+      case 'self':
+        return [userId];
+
+      case 'my-team': {
+        if (!userHierarchyNodeId) return [userId]; // Fallback to self if no team
+        const siblingIds = getTeamSiblingIds(userHierarchyNodeId, tree);
+        // For "My Team", just use the user's own team node (not sibling teams)
+        const teamNodeIds = [userHierarchyNodeId];
+        return resolveConsultantIds(teamNodeIds, consultants);
+      }
+
+      case 'custom': {
+        if (selectedNodeIds.length === 0) return [userId]; // Fallback
+        const expandedIds = expandNodeIds(selectedNodeIds, tree);
+        return resolveConsultantIds(expandedIds, consultants);
+      }
+
+      case 'national':
+        return null; // null = no filter
+
+      default:
+        return [userId];
+    }
+  }, [filters.scope, tree, consultants, treeLoading, consultantsLoading, userId, userHierarchyNodeId]);
+
+  const isScopeLoading = treeLoading || consultantsLoading;
 
   const setDateRange = useCallback((range: DateRange) => {
     setFilters((prev) => ({ ...prev, dateRange: range }));
   }, []);
 
-  const setHierarchyScope = useCallback((scope: HierarchyScope) => {
-    setFilters((prev) => ({ ...prev, hierarchyScope: scope }));
-  }, []);
-
-  const setConsultantId = useCallback((id: string | undefined) => {
-    setFilters((prev) => ({ ...prev, consultantId: id }));
+  const setScope = useCallback((scope: ScopeSelection) => {
+    setFilters((prev) => ({ ...prev, scope }));
   }, []);
 
   const resetFilters = useCallback(() => {
@@ -140,9 +223,12 @@ export function FilterProvider({ children }: { children: ReactNode }) {
       value={{
         filters,
         setDateRange,
-        setHierarchyScope,
-        setConsultantId,
+        setScope,
         resetFilters,
+        resolvedConsultantIds,
+        isScopeLoading,
+        userId,
+        userHierarchyNodeId,
       }}
     >
       {children}
@@ -162,4 +248,10 @@ export function useFilters() {
 export function useDateRange() {
   const { filters } = useFilters();
   return filters.dateRange;
+}
+
+// Helper hook for resolved scope
+export function useResolvedScope() {
+  const { resolvedConsultantIds, isScopeLoading } = useFilters();
+  return { consultantIds: resolvedConsultantIds, isLoading: isScopeLoading };
 }

@@ -31,19 +31,25 @@ interface DashboardViewProps {
   initialDashboard: DashboardWithWidgets;
   isOwner: boolean;
   userRole: 'consultant' | 'team_lead' | 'manager' | 'admin';
+  userId: string;
+  userHierarchyNodeId: string | null;
 }
 
 export function DashboardView({
   initialDashboard,
   isOwner,
   userRole,
+  userId,
+  userHierarchyNodeId,
 }: DashboardViewProps) {
   return (
-    <FilterProvider>
+    <FilterProvider userId={userId} userHierarchyNodeId={userHierarchyNodeId}>
       <DashboardViewInner
         initialDashboard={initialDashboard}
         isOwner={isOwner}
         userRole={userRole}
+        userId={userId}
+        userHierarchyNodeId={userHierarchyNodeId}
       />
     </FilterProvider>
   );
@@ -52,7 +58,6 @@ export function DashboardView({
 function DashboardViewInner({
   initialDashboard,
   isOwner,
-  userRole,
 }: DashboardViewProps) {
   const router = useRouter();
   const dateRange = useDateRange();
@@ -213,7 +218,7 @@ function DashboardViewInner({
       </div>
 
       {/* Filter Bar */}
-      <EnhancedFilterBar userRole={userRole} />
+      <EnhancedFilterBar />
 
       {/* Grid */}
       <DashboardGrid

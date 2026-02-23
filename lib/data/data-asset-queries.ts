@@ -2,7 +2,7 @@
  * Data Asset Query Functions
  *
  * Queries data assets from Supabase and returns data in shape contract formats.
- * All queries respect RLS and hierarchy scoping.
+ * All queries respect RLS and hierarchy scoping via consultantIds filter.
  */
 
 import { createClient } from '@/lib/supabase/client';
@@ -19,6 +19,28 @@ import type {
 } from './shape-contracts';
 
 type SupabaseClient = ReturnType<typeof createClient>;
+
+// ============================================================================
+// Shared Consultant Filter Helper
+// ============================================================================
+
+/**
+ * Apply consultant ID filtering to a Supabase query.
+ * If consultantIds is null, no filter is applied (national scope).
+ * If consultantIds is an empty array, returns no results.
+ * Uses generic type to preserve the query builder's fluent type chain.
+ */
+function applyConsultantFilter<T extends { in: (col: string, vals: string[]) => T; eq: (col: string, val: string) => T }>(
+  query: T,
+  filters: DataAssetParams['filters'],
+  column: string = 'consultant_id'
+): T {
+  const ids = filters?.consultantIds;
+  if (ids === null || ids === undefined) return query;
+  if (ids.length === 0) return query.in(column, ['__no_match__']);
+  if (ids.length === 1) return query.eq(column, ids[0]);
+  return query.in(column, ids);
+}
 
 // ============================================================================
 // Main Query Function
@@ -117,9 +139,7 @@ async function querySingleValue(
       .lte('activity_date', params.filters.dateRange.end);
   }
 
-  if (params.filters?.consultantId) {
-    query = query.eq('consultant_id', params.filters.consultantId);
-  }
+  query = applyConsultantFilter(query, params.filters);
 
   const { count, error } = await query;
 
@@ -155,9 +175,7 @@ async function querySingleValue(
       .gte('activity_date', prevStart.toISOString().split('T')[0])
       .lte('activity_date', prevEnd.toISOString().split('T')[0]);
 
-    if (params.filters?.consultantId) {
-      prevQuery = prevQuery.eq('consultant_id', params.filters.consultantId);
-    }
+    prevQuery = applyConsultantFilter(prevQuery, params.filters);
 
     const { count: prevCount } = await prevQuery;
 
@@ -187,10 +205,11 @@ async function queryCategorical(
 ): Promise<Categorical> {
   const activityTypes = (asset.metadata as Record<string, unknown>)?.activity_types as string[] ?? [];
 
-  // Select with join to user_profiles to get display names
+  // Select with activity_type + join to user_profiles for display names
+  // Including activity_type allows us to produce series data for stacked charts
   let query = supabase
     .from('activities')
-    .select('consultant_id, user_profiles(display_name, first_name, last_name)');
+    .select('consultant_id, activity_type, user_profiles(display_name, first_name, last_name)');
 
   // Apply filters
   if (activityTypes.length > 0) {
@@ -203,47 +222,70 @@ async function queryCategorical(
       .lte('activity_date', params.filters.dateRange.end);
   }
 
+  query = applyConsultantFilter(query, params.filters);
+
   const { data, error } = await query;
 
   if (error) {
     throw new Error(`Query failed: ${error.message}`);
   }
 
-  // Group and count by consultant
-  const grouped = new Map<string, { count: number; name: string }>();
+  // Group by consultant and activity type simultaneously
+  const consultantNames = new Map<string, string>();
+  const totals = new Map<string, number>();
+  const seriesMap = new Map<string, Map<string, number>>();
 
   for (const row of data || []) {
     const consultantId = row.consultant_id;
-    // Supabase returns joined data as an object (not array) for single foreign key relations
-    const profile = Array.isArray(row.user_profiles)
-      ? row.user_profiles[0]
-      : row.user_profiles;
+    const actType = row.activity_type;
+    if (!consultantId) continue;
 
-    // Get display name (fallback to first + last name, then "Unknown")
-    const displayName =
-      profile?.display_name ||
-      (profile?.first_name && profile?.last_name
-        ? `${profile.first_name} ${profile.last_name}`
-        : profile?.first_name || profile?.last_name || 'Unknown');
+    // Resolve display name
+    if (!consultantNames.has(consultantId)) {
+      const profile = Array.isArray(row.user_profiles)
+        ? row.user_profiles[0]
+        : row.user_profiles;
+      consultantNames.set(
+        consultantId,
+        profile?.display_name ||
+          (profile?.first_name && profile?.last_name
+            ? `${profile.first_name} ${profile.last_name}`
+            : profile?.first_name || profile?.last_name || 'Unknown')
+      );
+    }
 
-    if (consultantId) {
-      const existing = grouped.get(consultantId) || { count: 0, name: displayName };
-      grouped.set(consultantId, {
-        count: existing.count + 1,
-        name: displayName,
-      });
+    totals.set(consultantId, (totals.get(consultantId) || 0) + 1);
+
+    if (actType) {
+      if (!seriesMap.has(actType)) seriesMap.set(actType, new Map());
+      const typeMap = seriesMap.get(actType)!;
+      typeMap.set(consultantId, (typeMap.get(consultantId) || 0) + 1);
     }
   }
 
-  // Convert to categories array and sort by value
-  const categories = Array.from(grouped.values())
-    .map(({ name, count }) => ({ label: name, value: count }))
-    .sort((a, b) => b.value - a.value)
+  // Top consultants by total activity
+  const topConsultants = Array.from(totals.entries())
+    .sort((a, b) => b[1] - a[1])
     .slice(0, params.limit || 10);
+
+  const categories = topConsultants.map(([id, value]) => ({
+    label: consultantNames.get(id) || 'Unknown',
+    value,
+  }));
+
+  // Build multi-series data for stacked/grouped charts
+  const series = Array.from(seriesMap.entries()).map(([name, typeMap]) => ({
+    name,
+    data: topConsultants.map(([id]) => ({
+      label: consultantNames.get(id) || 'Unknown',
+      value: typeMap.get(id) || 0,
+    })),
+  }));
 
   return {
     _shape: 'categorical',
     categories,
+    series: series.length > 0 ? series : undefined,
     format: 'number',
   };
 }
@@ -268,9 +310,7 @@ async function queryTimeSeries(
       .lte('activity_date', params.filters.dateRange.end);
   }
 
-  if (params.filters?.consultantId) {
-    query = query.eq('consultant_id', params.filters.consultantId);
-  }
+  query = applyConsultantFilter(query, params.filters);
 
   const { data, error } = await query;
 
@@ -326,9 +366,7 @@ async function queryTabular(
       .lte('activity_date', params.filters.dateRange.end);
   }
 
-  if (params.filters?.consultantId) {
-    query = query.eq('consultant_id', params.filters.consultantId);
-  }
+  query = applyConsultantFilter(query, params.filters);
 
   // Apply pagination
   const limit = params.limit || 50;
@@ -401,9 +439,9 @@ async function queryFunnelStages(
       .lte('changed_at', params.filters.dateRange.end);
   }
 
-  if (params.filters?.consultantId) {
-    query = query.eq('changed_by', params.filters.consultantId);
-  }
+  // submission_status_log uses 'changed_by' for consultant tracking,
+  // but also has 'consultant_id' — use consultant_id for scope filtering
+  query = applyConsultantFilter(query, params.filters);
 
   const { data, error } = await query;
 
@@ -447,7 +485,7 @@ async function queryFunnelStages(
   if (stages.length === 0) {
     const fallbackStages = Array.from(counts.entries())
       .sort((a, b) => b[1] - a[1])
-      .map(([name, value], index) => ({
+      .map(([name, value]) => ({
         name,
         value,
         conversionRate: undefined as number | undefined,
@@ -494,6 +532,8 @@ async function queryMatrix(
       .gte('activity_date', params.filters.dateRange.start)
       .lte('activity_date', params.filters.dateRange.end);
   }
+
+  query = applyConsultantFilter(query, params.filters);
 
   const { data, error } = await query;
 
@@ -570,6 +610,8 @@ export async function queryCategoricalMultiSeries(
       .gte('activity_date', params.filters.dateRange.start)
       .lte('activity_date', params.filters.dateRange.end);
   }
+
+  query = applyConsultantFilter(query, params.filters);
 
   const { data, error } = await query;
 

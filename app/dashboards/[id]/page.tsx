@@ -38,10 +38,10 @@ export default async function DashboardViewPage({ params }: PageProps) {
 
   if (error || !dashboard) notFound();
 
-  // Fetch user profile for role
+  // Fetch user profile for role and hierarchy
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('role')
+    .select('role, hierarchy_node_id')
     .eq('id', user.id)
     .single();
 
@@ -68,6 +68,8 @@ export default async function DashboardViewPage({ params }: PageProps) {
       initialDashboard={dashboardWithWidgets}
       isOwner={isOwner}
       userRole={userRole}
+      userId={user.id}
+      userHierarchyNodeId={profile?.hierarchy_node_id ?? null}
     />
   );
 }

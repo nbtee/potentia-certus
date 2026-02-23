@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Calendar, ChevronDown, Building2, Filter, X } from 'lucide-react';
+import { Calendar, ChevronDown, Filter, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -19,15 +19,8 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
-import {
-  useFilters,
-  calculateDateRange,
-  type HierarchyScope,
-} from '@/lib/contexts/filter-context';
-
-interface EnhancedFilterBarProps {
-  userRole: 'consultant' | 'team_lead' | 'manager' | 'admin';
-}
+import { useFilters, calculateDateRange } from '@/lib/contexts/filter-context';
+import { ScopePicker } from '@/components/scope-picker';
 
 const dateRanges = [
   { label: 'Last 7 days', value: '7d' },
@@ -38,8 +31,8 @@ const dateRanges = [
   { label: 'Custom Range', value: 'custom' },
 ];
 
-export function EnhancedFilterBar({ userRole }: EnhancedFilterBarProps) {
-  const { filters, setDateRange, setHierarchyScope, resetFilters } = useFilters();
+export function EnhancedFilterBar() {
+  const { filters, setDateRange, resetFilters } = useFilters();
 
   // Local state only for UI controls that don't map directly to context
   const [dateRangePreset, setDateRangePreset] = useState('30d');
@@ -47,30 +40,8 @@ export function EnhancedFilterBar({ userRole }: EnhancedFilterBarProps) {
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
   const [isCustomOpen, setIsCustomOpen] = useState(false);
 
-  const getHierarchyOptions = (): Array<{ label: string; value: HierarchyScope }> => {
-    const options: Array<{ label: string; value: HierarchyScope }> = [
-      { label: 'My Performance', value: 'self' },
-    ];
-
-    if (userRole === 'team_lead' || userRole === 'manager' || userRole === 'admin') {
-      options.push({ label: 'My Team', value: 'my-team' });
-    }
-
-    if (userRole === 'manager' || userRole === 'admin') {
-      options.push({ label: 'Region', value: 'region' });
-    }
-
-    if (userRole === 'admin') {
-      options.push({ label: 'National', value: 'national' });
-    }
-
-    return options;
-  };
-
-  const hierarchyOptions = getHierarchyOptions();
-
   // Detect if filters differ from defaults
-  const hasActiveFilters = dateRangePreset !== '30d' || filters.hierarchyScope !== 'my-team';
+  const hasActiveFilters = dateRangePreset !== '30d' || filters.scope.preset !== 'self';
 
   const handleDateRangeChange = (preset: string) => {
     setDateRangePreset(preset);
@@ -87,10 +58,6 @@ export function EnhancedFilterBar({ userRole }: EnhancedFilterBarProps) {
       });
       setIsCustomOpen(false);
     }
-  };
-
-  const handleHierarchyScopeChange = (value: string) => {
-    setHierarchyScope(value as HierarchyScope);
   };
 
   const handleClearFilters = () => {
@@ -206,19 +173,7 @@ export function EnhancedFilterBar({ userRole }: EnhancedFilterBarProps) {
           <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
             Scope
           </label>
-          <Select value={filters.hierarchyScope} onValueChange={handleHierarchyScopeChange}>
-            <SelectTrigger className="h-9 w-[180px] border-gray-200 bg-white hover:bg-gray-50 transition-colors">
-              <Building2 className="mr-2 h-4 w-4 text-gray-500" />
-              <SelectValue placeholder="Select scope" />
-            </SelectTrigger>
-            <SelectContent className="bg-white">
-              {hierarchyOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <ScopePicker />
         </div>
 
         {/* Actions */}

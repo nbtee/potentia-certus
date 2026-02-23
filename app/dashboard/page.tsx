@@ -10,19 +10,20 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Fetch user profile to get role
+  // Fetch user profile to get role and hierarchy
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('role')
+    .select('role, hierarchy_node_id')
     .eq('id', user?.id)
     .single();
 
-  const userRole = profile?.role || 'consultant';
-
   return (
-    <DashboardWrapper>
+    <DashboardWrapper
+      userId={user?.id ?? ''}
+      userHierarchyNodeId={profile?.hierarchy_node_id ?? null}
+    >
       <div className="space-y-6">
-        <EnhancedFilterBar userRole={userRole} />
+        <EnhancedFilterBar />
         <DashboardContent />
       </div>
     </DashboardWrapper>
