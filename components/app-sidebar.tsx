@@ -5,10 +5,8 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
-  BarChart3,
   Users,
   Settings,
-  FileText,
   Database,
   TrendingUp,
   Layers,
@@ -69,25 +67,6 @@ const navigation: NavItem[] = [
     href: '/performance',
     icon: TrendingUp,
     roles: ['consultant', 'team_lead', 'manager', 'admin'],
-  },
-  {
-    name: 'Team View',
-    href: '/team',
-    icon: Users,
-    roles: ['team_lead', 'manager', 'admin'],
-  },
-  {
-    name: 'Analytics',
-    href: '/analytics',
-    icon: BarChart3,
-    roles: ['manager', 'admin'],
-    badge: 'New',
-  },
-  {
-    name: 'Reports',
-    href: '/reports',
-    icon: FileText,
-    roles: ['manager', 'admin'],
   },
   // Administration section
   {
