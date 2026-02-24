@@ -21,6 +21,43 @@ import type {
 type SupabaseClient = ReturnType<typeof createClient>;
 
 // ============================================================================
+// Shared Date Range Helper
+// ============================================================================
+
+/** Compute the next calendar day from a YYYY-MM-DD string. */
+function nextDay(dateStr: string): string {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const next = new Date(y, m - 1, d + 1);
+  const ny = next.getFullYear();
+  const nm = String(next.getMonth() + 1).padStart(2, '0');
+  const nd = String(next.getDate()).padStart(2, '0');
+  return `${ny}-${nm}-${nd}`;
+}
+
+/** Extract local YYYY-MM-DD from a Date (avoids UTC shift from toISOString). */
+function toLocalDateString(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * Apply date range filtering using >= start and < nextDay(end).
+ * This ensures the entire end date is included regardless of timezone.
+ */
+function applyDateRange<T extends { gte: (col: string, val: string) => T; lt: (col: string, val: string) => T }>(
+  query: T,
+  dateRange: { start: string; end: string } | undefined,
+  column: string = 'activity_date'
+): T {
+  if (!dateRange) return query;
+  return query
+    .gte(column, dateRange.start)
+    .lt(column, nextDay(dateRange.end));
+}
+
+// ============================================================================
 // Shared Consultant Filter Helper
 // ============================================================================
 
@@ -133,12 +170,7 @@ async function querySingleValue(
     query = query.in('activity_type', activityTypes);
   }
 
-  if (params.filters?.dateRange) {
-    query = query
-      .gte('activity_date', params.filters.dateRange.start)
-      .lte('activity_date', params.filters.dateRange.end);
-  }
-
+  query = applyDateRange(query, params.filters?.dateRange);
   query = applyConsultantFilter(query, params.filters);
 
   const { count, error } = await query;
@@ -171,10 +203,10 @@ async function querySingleValue(
       prevQuery = prevQuery.in('activity_type', activityTypes);
     }
 
-    prevQuery = prevQuery
-      .gte('activity_date', prevStart.toISOString().split('T')[0])
-      .lte('activity_date', prevEnd.toISOString().split('T')[0]);
-
+    prevQuery = applyDateRange(prevQuery, {
+      start: toLocalDateString(prevStart),
+      end: toLocalDateString(prevEnd),
+    });
     prevQuery = applyConsultantFilter(prevQuery, params.filters);
 
     const { count: prevCount } = await prevQuery;
@@ -216,12 +248,7 @@ async function queryCategorical(
     query = query.in('activity_type', activityTypes);
   }
 
-  if (params.filters?.dateRange) {
-    query = query
-      .gte('activity_date', params.filters.dateRange.start)
-      .lte('activity_date', params.filters.dateRange.end);
-  }
-
+  query = applyDateRange(query, params.filters?.dateRange);
   query = applyConsultantFilter(query, params.filters);
 
   const { data, error } = await query;
@@ -304,12 +331,7 @@ async function queryTimeSeries(
     query = query.in('activity_type', activityTypes);
   }
 
-  if (params.filters?.dateRange) {
-    query = query
-      .gte('activity_date', params.filters.dateRange.start)
-      .lte('activity_date', params.filters.dateRange.end);
-  }
-
+  query = applyDateRange(query, params.filters?.dateRange);
   query = applyConsultantFilter(query, params.filters);
 
   const { data, error } = await query;
@@ -360,12 +382,7 @@ async function queryTabular(
     query = query.in('activity_type', activityTypes);
   }
 
-  if (params.filters?.dateRange) {
-    query = query
-      .gte('activity_date', params.filters.dateRange.start)
-      .lte('activity_date', params.filters.dateRange.end);
-  }
-
+  query = applyDateRange(query, params.filters?.dateRange);
   query = applyConsultantFilter(query, params.filters);
 
   // Apply pagination
@@ -433,11 +450,7 @@ async function queryFunnelStages(
     .from('submission_status_log')
     .select('status_to');
 
-  if (params.filters?.dateRange) {
-    query = query
-      .gte('changed_at', params.filters.dateRange.start)
-      .lte('changed_at', params.filters.dateRange.end);
-  }
+  query = applyDateRange(query, params.filters?.dateRange, 'detected_at');
 
   // submission_status_log uses 'changed_by' for consultant tracking,
   // but also has 'consultant_id' — use consultant_id for scope filtering
@@ -527,12 +540,7 @@ async function queryMatrix(
     .from('activities')
     .select('consultant_id, activity_type, user_profiles(display_name, first_name, last_name)');
 
-  if (params.filters?.dateRange) {
-    query = query
-      .gte('activity_date', params.filters.dateRange.start)
-      .lte('activity_date', params.filters.dateRange.end);
-  }
-
+  query = applyDateRange(query, params.filters?.dateRange);
   query = applyConsultantFilter(query, params.filters);
 
   const { data, error } = await query;
@@ -605,12 +613,7 @@ export async function queryCategoricalMultiSeries(
     .from('activities')
     .select('activity_type, consultant_id, user_profiles(display_name, first_name, last_name)');
 
-  if (params.filters?.dateRange) {
-    query = query
-      .gte('activity_date', params.filters.dateRange.start)
-      .lte('activity_date', params.filters.dateRange.end);
-  }
-
+  query = applyDateRange(query, params.filters?.dateRange);
   query = applyConsultantFilter(query, params.filters);
 
   const { data, error } = await query;

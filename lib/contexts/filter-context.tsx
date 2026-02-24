@@ -62,6 +62,14 @@ interface FilterContextType {
 
 const FilterContext = createContext<FilterContextType | undefined>(undefined);
 
+// Extract local date as YYYY-MM-DD (avoids UTC shift from toISOString)
+function toLocalDateString(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 // Helper to calculate date range from preset
 export function calculateDateRange(preset: string): DateRange {
   const end = new Date();
@@ -88,8 +96,8 @@ export function calculateDateRange(preset: string): DateRange {
   }
 
   return {
-    start: start.toISOString().split('T')[0],
-    end: end.toISOString().split('T')[0],
+    start: toLocalDateString(start),
+    end: toLocalDateString(end),
   };
 }
 
