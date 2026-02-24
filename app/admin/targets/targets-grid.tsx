@@ -14,17 +14,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, Save, Copy, Undo2, Check, XCircle } from 'lucide-react';
+import { Loader2, Save, Copy, Undo2, Check, XCircle, CalendarRange } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MonthSelector } from './month-selector';
 import {
   TargetSpreadsheet,
   buildUpsertPayload,
 } from './target-spreadsheet';
+import { ApplyToMonthsDialog } from './apply-to-months-dialog';
 import {
   useMonthlyTargets,
   useBulkUpsertTargets,
   useCopyFromPreviousMonth,
+  useApplyToMonths,
 } from '@/lib/admin/hooks';
 import {
   REVENUE_CATEGORIES,
@@ -38,6 +40,7 @@ import {
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 type CopyState = 'idle' | 'copying' | 'copied' | 'error';
+type ApplyState = 'idle' | 'applying' | 'applied' | 'error';
 
 export function TargetsGrid() {
   const [currentMonth, setCurrentMonth] = useState(getCurrentMonthStart);
@@ -46,6 +49,7 @@ export function TargetsGrid() {
   const { data: grid, isLoading } = useMonthlyTargets(monthStart);
   const upsertMutation = useBulkUpsertTargets();
   const copyMutation = useCopyFromPreviousMonth();
+  const applyMutation = useApplyToMonths();
 
   const [dirtyMap, setDirtyMap] = useState<Map<string, number>>(new Map());
   const [showCopyConfirm, setShowCopyConfirm] = useState(false);
@@ -53,9 +57,13 @@ export function TargetsGrid() {
   const [saveMessage, setSaveMessage] = useState('');
   const [copyState, setCopyState] = useState<CopyState>('idle');
   const [copyMessage, setCopyMessage] = useState('');
+  const [showApplyDialog, setShowApplyDialog] = useState(false);
+  const [applyState, setApplyState] = useState<ApplyState>('idle');
+  const [applyMessage, setApplyMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const copyTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const applyTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const isDirty = dirtyMap.size > 0;
 
@@ -64,6 +72,7 @@ export function TargetsGrid() {
     setDirtyMap(new Map());
     setSaveState('idle');
     setCopyState('idle');
+    setApplyState('idle');
     setErrorMessage('');
   }, []);
 
@@ -148,6 +157,35 @@ export function TargetsGrid() {
     setErrorMessage('');
   }
 
+  async function handleApplyToMonths(destMonths: string[], overwrite: boolean) {
+    if (!grid) return;
+    clearTimeout(applyTimerRef.current);
+    setApplyState('applying');
+    setErrorMessage('');
+    try {
+      const result = await applyMutation.mutateAsync({
+        sourceMonthStart: grid.monthStart,
+        destMonths,
+        overwrite,
+      });
+      setShowApplyDialog(false);
+      setApplyState('applied');
+      setApplyMessage(
+        !result?.count
+          ? 'Nothing to apply'
+          : `${result.count} target${result.count !== 1 ? 's' : ''} applied to ${destMonths.length} month${destMonths.length !== 1 ? 's' : ''}`
+      );
+      applyTimerRef.current = setTimeout(() => setApplyState('idle'), 4000);
+    } catch (err) {
+      setShowApplyDialog(false);
+      setApplyState('error');
+      setErrorMessage(
+        err instanceof Error ? err.message : 'Failed to apply targets'
+      );
+      applyTimerRef.current = setTimeout(() => setApplyState('idle'), 4000);
+    }
+  }
+
   return (
     <div>
       <AdminPageHeader
@@ -195,9 +233,9 @@ export function TargetsGrid() {
           <div
             className={cn(
               'mt-4 flex items-center gap-3 rounded-lg border p-3 transition-colors duration-300',
-              saveState === 'saved'
+              saveState === 'saved' || applyState === 'applied'
                 ? 'border-emerald-200 bg-emerald-50'
-                : saveState === 'error' || copyState === 'error'
+                : saveState === 'error' || copyState === 'error' || applyState === 'error'
                   ? 'border-red-200 bg-red-50'
                   : 'border-gray-200 bg-white'
             )}
@@ -224,10 +262,43 @@ export function TargetsGrid() {
               {copyState === 'copied' ? copyMessage : 'Copy from Previous Month'}
             </Button>
 
+            {/* Apply to months button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowApplyDialog(true)}
+              disabled={
+                applyState === 'applying' ||
+                !grid?.regions.some((r) =>
+                  r.teams.some((t) =>
+                    t.consultants.some(
+                      (c) => Object.keys(c.targets).length > 0
+                    )
+                  )
+                )
+              }
+              className={cn(
+                'transition-all duration-200',
+                applyState === 'applied' &&
+                  'border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-700'
+              )}
+            >
+              {applyState === 'applying' ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : applyState === 'applied' ? (
+                <Check className="mr-2 h-4 w-4" />
+              ) : (
+                <CalendarRange className="mr-2 h-4 w-4" />
+              )}
+              {applyState === 'applied'
+                ? applyMessage
+                : 'Apply to Months...'}
+            </Button>
+
             <div className="flex-1" />
 
             {/* Inline error message */}
-            {(saveState === 'error' || copyState === 'error') && errorMessage && (
+            {(saveState === 'error' || copyState === 'error' || applyState === 'error') && errorMessage && (
               <span className="flex items-center gap-1.5 text-sm text-red-600">
                 <XCircle className="h-4 w-4 flex-shrink-0" />
                 {errorMessage}
@@ -316,6 +387,15 @@ export function TargetsGrid() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Apply to months dialog */}
+      <ApplyToMonthsDialog
+        open={showApplyDialog}
+        onOpenChange={setShowApplyDialog}
+        sourceMonth={currentMonth}
+        isPending={applyState === 'applying'}
+        onApply={handleApplyToMonths}
+      />
     </div>
   );
 }

@@ -289,3 +289,91 @@ export async function copyFromPreviousMonth(
 
   return { data: { count: count ?? newTargets.length } };
 }
+
+// =============================================================================
+// Apply Targets to Multiple Months
+// =============================================================================
+
+export async function applyToMonths(
+  sourceMonthStart: string,
+  destMonths: string[],
+  overwrite: boolean
+): Promise<ActionResult<{ count: number }>> {
+  const userId = await requireAdminOrManager();
+  if (!userId) return { error: 'Admin or manager access required' };
+
+  if (destMonths.length === 0) return { error: 'No destination months selected' };
+
+  const supabase = await createClient();
+
+  // Get source month targets
+  const { data: sourceTargets, error: sErr } = await supabase
+    .from('consultant_targets')
+    .select('consultant_id, target_type, target_value')
+    .eq('period_start', sourceMonthStart);
+
+  if (sErr) return { error: sErr.message };
+  if (!sourceTargets?.length) {
+    return { error: 'No targets found in the source month' };
+  }
+
+  let totalWritten = 0;
+
+  for (const destMonth of destMonths) {
+    const destDate = new Date(destMonth + 'T00:00:00');
+    const destEnd = getMonthEnd(destDate);
+
+    let targetsToWrite = sourceTargets;
+
+    if (!overwrite) {
+      // Fetch existing targets for this dest month, skip matches
+      const { data: existing, error: eErr } = await supabase
+        .from('consultant_targets')
+        .select('consultant_id, target_type')
+        .eq('period_start', destMonth);
+
+      if (eErr) return { error: eErr.message };
+
+      const existingKeys = new Set(
+        (existing ?? []).map((t) => `${t.consultant_id}:${t.target_type}`)
+      );
+
+      targetsToWrite = sourceTargets.filter(
+        (t) => !existingKeys.has(`${t.consultant_id}:${t.target_type}`)
+      );
+    }
+
+    if (targetsToWrite.length === 0) continue;
+
+    const payload: UpsertTargetInput[] = targetsToWrite.map((t) => ({
+      consultant_id: t.consultant_id,
+      target_type: t.target_type,
+      target_value: Number(t.target_value),
+      period_start: destMonth,
+      period_end: destEnd,
+    }));
+
+    const { data: count, error } = await supabase.rpc('upsert_monthly_targets', {
+      p_targets: payload,
+      p_created_by: userId,
+    });
+
+    if (error) return { error: error.message };
+    totalWritten += count ?? payload.length;
+  }
+
+  await writeAuditLog(
+    'target.apply_to_months',
+    'consultant_targets',
+    undefined,
+    null,
+    {
+      source_month: sourceMonthStart,
+      dest_months: destMonths,
+      count: totalWritten,
+      overwrite,
+    }
+  );
+
+  return { data: { count: totalWritten } };
+}

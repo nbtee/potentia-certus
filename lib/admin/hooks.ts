@@ -24,6 +24,7 @@ import {
   listTargetsForMonth,
   bulkUpsertTargets,
   copyFromPreviousMonth,
+  applyToMonths,
 } from '@/app/admin/targets/actions';
 import type { UpsertTargetInput } from '@/lib/admin/types';
 import {
@@ -269,6 +270,27 @@ export function useCopyFromPreviousMonth() {
         sourceMonthStart,
         destMonthStart
       );
+      if (result.error) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ['admin', 'targets'] }),
+  });
+}
+
+export function useApplyToMonths() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      sourceMonthStart,
+      destMonths,
+      overwrite,
+    }: {
+      sourceMonthStart: string;
+      destMonths: string[];
+      overwrite: boolean;
+    }) => {
+      const result = await applyToMonths(sourceMonthStart, destMonths, overwrite);
       if (result.error) throw new Error(result.error);
       return result.data;
     },
