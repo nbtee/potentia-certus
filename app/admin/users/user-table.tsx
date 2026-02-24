@@ -16,6 +16,8 @@ import { useUsers, useDeactivateUser, useReactivateUser } from '@/lib/admin/hook
 import { UserDialog } from './user-dialog';
 import { CSVImportDialog } from './csv-import-dialog';
 import type { UserProfile } from '@/lib/admin/types';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { MoreHorizontal, Plus, UserX, UserCheck, Pencil, Upload } from 'lucide-react';
 
 const roleColors: Record<string, string> = {
@@ -94,6 +96,12 @@ export function UserTable() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [hideDeactivated, setHideDeactivated] = useState(true);
+
+  const filteredUsers = useMemo(
+    () => hideDeactivated ? (users ?? []).filter((u) => u.is_active) : (users ?? []),
+    [users, hideDeactivated]
+  );
 
   // Use refs so column cell renderers always access the latest callbacks
   // without needing to be recreated on every render
@@ -218,9 +226,20 @@ export function UserTable() {
         </Button>
       </AdminPageHeader>
 
+      <div className="flex items-center gap-2 mb-4">
+        <Switch
+          id="hide-deactivated"
+          checked={hideDeactivated}
+          onCheckedChange={setHideDeactivated}
+        />
+        <Label htmlFor="hide-deactivated" className="text-sm text-muted-foreground cursor-pointer">
+          Hide deactivated users
+        </Label>
+      </div>
+
       <AdminDataTable
         columns={columns}
-        data={users ?? []}
+        data={filteredUsers}
         isLoading={isLoading}
         searchPlaceholder="Search users..."
         searchColumn="name"
