@@ -199,7 +199,7 @@ export async function bulkUpsertTargets(
   const supabase = await createClient();
 
   const { data: count, error } = await supabase.rpc('upsert_monthly_targets', {
-    p_targets: JSON.stringify(parsed.data),
+    p_targets: parsed.data,
     p_created_by: userId,
   });
 
@@ -269,7 +269,7 @@ export async function copyFromPreviousMonth(
 
   // Use the same RPC for consistency
   const { data: count, error } = await supabase.rpc('upsert_monthly_targets', {
-    p_targets: JSON.stringify(newTargets),
+    p_targets: newTargets,
     p_created_by: userId,
   });
 

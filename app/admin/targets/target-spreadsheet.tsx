@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, Fragment } from 'react';
 import { cn } from '@/lib/utils';
 import type {
   MonthlyTargetGrid,
@@ -153,9 +153,9 @@ export function TargetSpreadsheet({
         </thead>
         <tbody>
           {grid.regions.map((region) => (
-            <>
+            <Fragment key={region.regionNodeId}>
               {/* Region header */}
-              <tr key={`region-${region.regionNodeId}`}>
+              <tr>
                 <td
                   colSpan={categories.length + 1}
                   className="bg-gray-100 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-gray-500"
@@ -164,9 +164,9 @@ export function TargetSpreadsheet({
                 </td>
               </tr>
               {region.teams.map((team) => (
-                <>
+                <Fragment key={team.teamNodeId}>
                   {/* Team header */}
-                  <tr key={`team-${team.teamNodeId}`}>
+                  <tr>
                     <td
                       colSpan={categories.length + 1}
                       className="bg-gray-50/80 px-3 py-1 pl-5 text-xs font-semibold text-gray-600"
@@ -199,9 +199,9 @@ export function TargetSpreadsheet({
                       })}
                     </tr>
                   ))}
-                </>
+                </Fragment>
               ))}
-            </>
+            </Fragment>
           ))}
         </tbody>
       </table>
