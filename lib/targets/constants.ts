@@ -59,13 +59,6 @@ export const TARGET_CATEGORIES: TargetCategory[] = [
     activityTypes: ['BD Meeting', 'Coffee Catch Up - Client'],
   },
   {
-    key: 'references',
-    label: 'References',
-    tab: 'activity',
-    unit: 'count',
-    activityTypes: ['Reference Check Call'],
-  },
-  {
     key: 'strategic_referrals',
     label: 'Strategic Referrals',
     tab: 'activity',

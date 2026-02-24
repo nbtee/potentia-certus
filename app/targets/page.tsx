@@ -1,5 +1,5 @@
-import { MyTargets } from './my-targets';
+import { redirect } from 'next/navigation';
 
 export default function TargetsPage() {
-  return <MyTargets />;
+  redirect('/performance');
 }
