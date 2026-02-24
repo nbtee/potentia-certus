@@ -25,6 +25,17 @@ const roleColors: Record<string, string> = {
   consultant: 'bg-gray-100 text-gray-800',
 };
 
+const titleLabels: Record<string, string> = {
+  associate_consultant: 'Associate Consultant',
+  consultant: 'Consultant',
+  senior_consultant: 'Senior Consultant',
+  principal_consultant: 'Principal Consultant',
+  talent_manager: 'Talent Manager',
+  senior_talent_manager: 'Senior Talent Manager',
+  general_manager: 'General Manager',
+  director: 'Director',
+};
+
 // ============================================================================
 // Row Actions (extracted to avoid capturing unstable refs in columns)
 // ============================================================================
@@ -122,6 +133,15 @@ export function UserTable() {
               <div className="text-xs text-gray-500">{u.email}</div>
             </div>
           );
+        },
+      },
+      {
+        accessorKey: 'title',
+        header: 'Title',
+        cell: ({ getValue }) => {
+          const t = getValue() as string | null;
+          if (!t) return <span className="text-sm text-gray-400">-</span>;
+          return <span className="text-sm">{titleLabels[t] ?? t}</span>;
         },
       },
       {

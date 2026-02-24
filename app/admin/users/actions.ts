@@ -55,11 +55,23 @@ export async function listUsers(): Promise<ActionResult<UserProfile[]>> {
 // Invite User (dev: creates auth user + profile)
 // =============================================================================
 
+const titleEnum = z.enum([
+  'associate_consultant',
+  'consultant',
+  'senior_consultant',
+  'principal_consultant',
+  'talent_manager',
+  'senior_talent_manager',
+  'general_manager',
+  'director',
+]);
+
 const inviteSchema = z.object({
   email: z.string().email(),
   first_name: z.string().min(1),
   last_name: z.string().min(1),
   role: z.enum(['consultant', 'team_lead', 'manager', 'admin']),
+  title: titleEnum.nullable().optional(),
   hierarchy_node_id: z.string().uuid().nullable().optional(),
 });
 
@@ -91,6 +103,7 @@ export async function inviteUser(
       last_name: parsed.data.last_name,
       display_name: `${parsed.data.first_name} ${parsed.data.last_name}`,
       role: parsed.data.role,
+      title: parsed.data.title ?? null,
       hierarchy_node_id: parsed.data.hierarchy_node_id ?? null,
     })
     .eq('id', authData.user.id)
@@ -117,7 +130,7 @@ const updateUserSchema = z.object({
   first_name: z.string().min(1).optional(),
   last_name: z.string().min(1).optional(),
   role: z.enum(['consultant', 'team_lead', 'manager', 'admin']).optional(),
-  hierarchy_node_id: z.string().uuid().nullable().optional(),
+  title: titleEnum.nullable().optional(),
 });
 
 export async function updateUser(
@@ -142,8 +155,7 @@ export async function updateUser(
   if (parsed.data.first_name !== undefined) updates.first_name = parsed.data.first_name;
   if (parsed.data.last_name !== undefined) updates.last_name = parsed.data.last_name;
   if (parsed.data.role !== undefined) updates.role = parsed.data.role;
-  if (parsed.data.hierarchy_node_id !== undefined)
-    updates.hierarchy_node_id = parsed.data.hierarchy_node_id;
+  if (parsed.data.title !== undefined) updates.title = parsed.data.title;
 
   if (parsed.data.first_name || parsed.data.last_name) {
     const fn = parsed.data.first_name ?? oldProfile?.first_name ?? '';

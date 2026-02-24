@@ -21,6 +21,17 @@ import {
 import { useInviteUser, useUpdateUser, useHierarchy } from '@/lib/admin/hooks';
 import type { UserProfile, OrgNode } from '@/lib/admin/types';
 
+const TITLE_OPTIONS = [
+  { value: 'associate_consultant', label: 'Associate Consultant' },
+  { value: 'consultant', label: 'Consultant' },
+  { value: 'senior_consultant', label: 'Senior Consultant' },
+  { value: 'principal_consultant', label: 'Principal Consultant' },
+  { value: 'talent_manager', label: 'Talent Manager' },
+  { value: 'senior_talent_manager', label: 'Senior Talent Manager' },
+  { value: 'general_manager', label: 'General Manager' },
+  { value: 'director', label: 'Director' },
+] as const;
+
 interface UserDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -37,6 +48,7 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [role, setRole] = useState<string>('consultant');
+  const [title, setTitle] = useState<string>('none');
   const [hierarchyNodeId, setHierarchyNodeId] = useState<string>('none');
 
   useEffect(() => {
@@ -45,12 +57,14 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
       setFirstName(user.first_name ?? '');
       setLastName(user.last_name ?? '');
       setRole(user.role);
+      setTitle(user.title ?? 'none');
       setHierarchyNodeId(user.hierarchy_node_id ?? 'none');
     } else {
       setEmail('');
       setFirstName('');
       setLastName('');
       setRole('consultant');
+      setTitle('none');
       setHierarchyNodeId('none');
     }
   }, [user, open]);
@@ -62,7 +76,7 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
   const isPending = inviteMutation.isPending || updateMutation.isPending;
 
   async function handleSubmit() {
-    const nodeId = hierarchyNodeId === 'none' ? null : hierarchyNodeId;
+    const titleValue = title === 'none' ? null : (title as typeof TITLE_OPTIONS[number]['value']);
 
     if (isEdit && user) {
       await updateMutation.mutateAsync({
@@ -70,14 +84,16 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
         first_name: firstName,
         last_name: lastName,
         role: role as UserProfile['role'],
-        hierarchy_node_id: nodeId,
+        title: titleValue,
       });
     } else {
+      const nodeId = hierarchyNodeId === 'none' ? null : hierarchyNodeId;
       await inviteMutation.mutateAsync({
         email,
         first_name: firstName,
         last_name: lastName,
         role: role as UserProfile['role'],
+        title: titleValue,
         hierarchy_node_id: nodeId,
       });
     }
@@ -124,37 +140,64 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
             </div>
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="role">Role</Label>
-            <Select value={role} onValueChange={setRole}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="consultant">Consultant</SelectItem>
-                <SelectItem value="team_lead">Team Lead</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
-                <SelectItem value="admin">Administrator</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="role">Role</Label>
+              <Select value={role} onValueChange={setRole}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="consultant">Consultant</SelectItem>
+                  <SelectItem value="team_lead">Team Lead</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="admin">Administrator</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="title">Title</Label>
+              <Select value={title} onValueChange={setTitle}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No title</SelectItem>
+                  {TITLE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="team">Team</Label>
-            <Select value={hierarchyNodeId} onValueChange={setHierarchyNodeId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select team..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No team assigned</SelectItem>
-                {teams.map((node: OrgNode) => (
-                  <SelectItem key={node.id} value={node.id}>
-                    {node.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {isEdit ? (
+            <div className="grid gap-2">
+              <Label>Team</Label>
+              <div className="rounded-md border border-input bg-muted/50 px-3 py-2 text-sm">
+                {user?.hierarchy_node?.name ?? 'No team assigned'}
+              </div>
+            </div>
+          ) : (
+            <div className="grid gap-2">
+              <Label htmlFor="team">Team</Label>
+              <Select value={hierarchyNodeId} onValueChange={setHierarchyNodeId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select team..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No team assigned</SelectItem>
+                  {teams.map((node: OrgNode) => (
+                    <SelectItem key={node.id} value={node.id}>
+                      {node.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
 
         <DialogFooter>

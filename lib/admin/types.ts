@@ -11,6 +11,7 @@ export interface UserProfile {
   hierarchy_node_id: string | null;
   bullhorn_corporate_user_id: number | null;
   role: 'consultant' | 'team_lead' | 'manager' | 'admin';
+  title: string | null;
   is_active: boolean;
   deactivated_at: string | null;
   metadata: Record<string, unknown>;
