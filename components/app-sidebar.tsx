@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -19,10 +20,19 @@ import {
   ScrollText,
   Sliders,
   Sparkles,
+  Search,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface SidebarProps {
   userRole: 'consultant' | 'team_lead' | 'manager' | 'admin';
@@ -60,6 +70,12 @@ const navigation: NavItem[] = [
     name: 'My Performance',
     href: '/performance',
     icon: TrendingUp,
+    roles: ['consultant', 'team_lead', 'manager', 'admin'],
+  },
+  {
+    name: 'Floatinator',
+    href: '/floatinator',
+    icon: Search,
     roles: ['consultant', 'team_lead', 'manager', 'admin'],
   },
   // Administration section
@@ -132,8 +148,26 @@ const navigation: NavItem[] = [
   },
 ];
 
+const STORAGE_KEY = 'potentia-sidebar-collapsed';
+
 export function AppSidebar({ userRole }: SidebarProps) {
   const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === 'true') setCollapsed(true);
+    setMounted(true);
+  }, []);
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem(STORAGE_KEY, String(next));
+      return next;
+    });
+  };
 
   // Filter navigation items based on user role
   const visibleNavItems = navigation.filter((item) =>
@@ -149,63 +183,88 @@ export function AppSidebar({ userRole }: SidebarProps) {
   };
 
   return (
-    <motion.div
-      initial={{ x: -20, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="flex h-full w-64 flex-col bg-gradient-to-b from-gray-900 via-gray-900 to-gray-950 shadow-2xl"
-    >
-      {/* Logo */}
-      <div className="flex h-16 items-center justify-between border-b border-gray-800/50 px-6">
-        <div className="flex items-center gap-2">
-          <Image
-            src="/Potentia_logo_full.svg"
-            alt="Potentia"
-            width={140}
-            height={35}
-            className="brightness-0 invert"
-          />
+    <TooltipProvider delayDuration={0}>
+      <motion.div
+        initial={{ x: -20, opacity: 0 }}
+        animate={{ x: 0, opacity: 1, width: collapsed ? 72 : 256 }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
+        className={cn(
+          'flex h-full flex-col bg-gradient-to-b from-gray-900 via-gray-900 to-gray-950 shadow-2xl',
+          // Prevent layout shift before hydration
+          !mounted && 'w-64'
+        )}
+      >
+        {/* Logo + collapse toggle */}
+        <div className="flex h-16 items-center border-b border-gray-800/50 px-4">
+          <div className={cn('flex items-center', collapsed ? 'justify-center w-full' : 'flex-1')}>
+            {collapsed ? (
+              <Image
+                src="/Potentia_logo_full.svg"
+                alt="Potentia"
+                width={28}
+                height={28}
+                className="brightness-0 invert"
+              />
+            ) : (
+              <Image
+                src="/Potentia_logo_full.svg"
+                alt="Potentia"
+                width={140}
+                height={35}
+                className="brightness-0 invert"
+              />
+            )}
+          </div>
+          {!collapsed && (
+            <button
+              onClick={toggleCollapsed}
+              className="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-gray-800 hover:text-gray-300"
+              aria-label="Collapse sidebar"
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </button>
+          )}
         </div>
-      </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 space-y-1 px-3 py-4">
-        <motion.div
-          variants={{
-            show: {
-              transition: {
-                staggerChildren: 0.05,
+        {/* Expand button when collapsed */}
+        {collapsed && (
+          <div className="flex justify-center px-3 pt-3 pb-1">
+            <button
+              onClick={toggleCollapsed}
+              className="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-gray-800 hover:text-gray-300"
+              aria-label="Expand sidebar"
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
+        {/* Navigation */}
+        <nav className={cn('flex-1 space-y-1 py-4', collapsed ? 'px-2' : 'px-3')}>
+          <motion.div
+            variants={{
+              show: {
+                transition: {
+                  staggerChildren: 0.05,
+                },
               },
-            },
-          }}
-          initial="hidden"
-          animate="show"
-        >
-          {visibleNavItems.map((item) => {
-            const isActive =
-              item.href === '/admin'
-                ? pathname === '/admin'
-                : pathname === item.href || pathname.startsWith(item.href + '/');
-            const Icon = item.icon;
+            }}
+            initial="hidden"
+            animate="show"
+          >
+            {visibleNavItems.map((item) => {
+              const isActive =
+                item.href === '/admin'
+                  ? pathname === '/admin'
+                  : pathname === item.href || pathname.startsWith(item.href + '/');
+              const Icon = item.icon;
 
-            return (
-              <motion.div
-                key={item.name}
-                variants={{
-                  hidden: { opacity: 0, x: -20 },
-                  show: { opacity: 1, x: 0 },
-                }}
-                transition={{ duration: 0.2 }}
-              >
-                {item.section && (
-                  <div className="mb-1 mt-4 px-3 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
-                    {item.section}
-                  </div>
-                )}
+              const linkContent = (
                 <Link
                   href={item.href}
                   className={cn(
-                    'group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
+                    'group relative flex items-center rounded-lg text-sm font-medium transition-all duration-200',
+                    collapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2.5',
                     isActive
                       ? 'bg-gradient-to-r from-emerald-500/10 to-teal-500/10 text-white shadow-lg shadow-emerald-500/20'
                       : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'
@@ -227,44 +286,80 @@ export function AppSidebar({ userRole }: SidebarProps) {
                     )}
                   />
 
-                  <span className="flex-1">{item.name}</span>
+                  {!collapsed && (
+                    <>
+                      <span className="flex-1">{item.name}</span>
 
-                  {item.badge && (
-                    <Badge
-                      variant="secondary"
-                      className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-xs px-1.5 py-0"
-                    >
-                      {item.badge}
-                    </Badge>
+                      {item.badge && (
+                        <Badge
+                          variant="secondary"
+                          className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-xs px-1.5 py-0"
+                        >
+                          {item.badge}
+                        </Badge>
+                      )}
+                    </>
                   )}
 
                   {/* Hover effect */}
                   <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-emerald-500/0 to-teal-500/0 opacity-0 transition-opacity duration-200 group-hover:from-emerald-500/5 group-hover:to-teal-500/5 group-hover:opacity-100" />
                 </Link>
-              </motion.div>
-            );
-          })}
-        </motion.div>
-      </nav>
+              );
 
-      {/* Footer */}
-      <div className="border-t border-gray-800/50 p-4">
-        <div className="rounded-lg bg-gray-800/30 p-3 backdrop-blur-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-primary to-brand-dark">
-              <span className="text-xs font-bold text-white">
-                {roleLabels[userRole].slice(0, 1)}
-              </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-medium text-gray-300 truncate">
-                {roleLabels[userRole]}
+              return (
+                <motion.div
+                  key={item.name}
+                  variants={{
+                    hidden: { opacity: 0, x: -20 },
+                    show: { opacity: 1, x: 0 },
+                  }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {!collapsed && item.section && (
+                    <div className="mb-1 mt-4 px-3 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+                      {item.section}
+                    </div>
+                  )}
+                  {collapsed && item.section && (
+                    <div className="my-2 mx-2 border-t border-gray-800/50" />
+                  )}
+                  {collapsed ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                      <TooltipContent side="right" sideOffset={8}>
+                        {item.name}
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    linkContent
+                  )}
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        </nav>
+
+        {/* Footer */}
+        <div className="border-t border-gray-800/50 p-4">
+          <div className={cn('rounded-lg bg-gray-800/30 backdrop-blur-sm', collapsed ? 'p-2' : 'p-3')}>
+            <div className={cn('flex items-center', collapsed ? 'justify-center' : 'gap-3')}>
+              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-primary to-brand-dark">
+                <span className="text-xs font-bold text-white">
+                  {roleLabels[userRole].slice(0, 1)}
+                </span>
               </div>
-              <div className="text-xs text-gray-500">Stage B • v1.0.0</div>
+              {!collapsed && (
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-medium text-gray-300 truncate">
+                    {roleLabels[userRole]}
+                  </div>
+                  <div className="text-xs text-gray-500">Stage B &bull; v1.0.0</div>
+                </div>
+              )}
             </div>
           </div>
         </div>
-      </div>
-    </motion.div>
+      </motion.div>
+    </TooltipProvider>
   );
 }
