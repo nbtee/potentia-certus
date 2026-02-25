@@ -8,7 +8,6 @@ import {
   TargetGauge,
   AnimatedLeaderboard,
   TimeSeriesCombo,
-  ConversionIndicator,
   Heatmap,
   StackedBarChart,
   WidgetErrorBoundary,
@@ -88,52 +87,6 @@ export function DashboardContent() {
             icon={UserCheck}
             colorScheme="green"
             dateRange={dateRange}
-          />
-        </WidgetErrorBoundary>
-      </div>
-
-      {/* ================================================================ */}
-      {/* Conversion Indicators (single_value shape, direct-value mode) */}
-      {/* ================================================================ */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <WidgetErrorBoundary fallbackTitle="Conversion failed">
-          <ConversionIndicator
-            title="Submit → Review"
-            fromLabel="Submitted"
-            toLabel="Review"
-            value={0.667}
-            previousValue={0.62}
-            colorScheme="teal"
-          />
-        </WidgetErrorBoundary>
-        <WidgetErrorBoundary fallbackTitle="Conversion failed">
-          <ConversionIndicator
-            title="Review → Interview"
-            fromLabel="Review"
-            toLabel="Interview"
-            value={0.625}
-            previousValue={0.58}
-            colorScheme="green"
-          />
-        </WidgetErrorBoundary>
-        <WidgetErrorBoundary fallbackTitle="Conversion failed">
-          <ConversionIndicator
-            title="Interview → Offer"
-            fromLabel="Interview"
-            toLabel="Offer"
-            value={0.429}
-            previousValue={0.45}
-            colorScheme="purple"
-          />
-        </WidgetErrorBoundary>
-        <WidgetErrorBoundary fallbackTitle="Conversion failed">
-          <ConversionIndicator
-            title="Offer → Placed"
-            fromLabel="Offer"
-            toLabel="Placed"
-            value={0.533}
-            previousValue={0.50}
-            colorScheme="orange"
           />
         </WidgetErrorBoundary>
       </div>

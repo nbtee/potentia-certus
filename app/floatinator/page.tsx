@@ -263,7 +263,7 @@ export default function Home() {
             <option value="Bay of Plenty">Bay of Plenty</option>
             <option value="Canterbury">Canterbury</option>
             <option value="Gisborne">Gisborne</option>
-            <option value="Hawke's Bay">Hawke's Bay</option>
+            <option value="Hawke's Bay">Hawke&apos;s Bay</option>
             <option value="Manawatu-Wanganui">Manawatu-Wanganui</option>
             <option value="Marlborough">Marlborough</option>
             <option value="Nelson">Nelson</option>
@@ -540,7 +540,7 @@ export default function Home() {
 
       {!loading && results.length === 0 && searchTerm && (
         <p style={{ color: "#333", textAlign: "center", marginTop: 40 }}>
-          No results found for "{searchTerm}"
+          No results found for &ldquo;{searchTerm}&rdquo;
         </p>
       )}
     </div>
