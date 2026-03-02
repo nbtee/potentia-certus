@@ -2,8 +2,6 @@
 
 import {
   KPICard,
-  TimeSeriesChart,
-  BarChart,
   AnimatedLeaderboard,
   Heatmap,
   MultiLineChart,
@@ -91,19 +89,6 @@ export function DashboardContent() {
       </div>
 
       {/* ================================================================ */}
-      {/* Time Series Charts (time_series shape) */}
-      {/* ================================================================ */}
-      <WidgetErrorBoundary fallbackTitle="Candidate Call chart failed">
-        <TimeSeriesChart
-          assetKey="candidate_call_count"
-          title="Candidate Call Activity"
-          chartType="area"
-          color="#00E5C0"
-          dateRange={dateRange}
-        />
-      </WidgetErrorBoundary>
-
-      {/* ================================================================ */}
       {/* Multi-Line Comparison (Activity vs Outcomes) */}
       {/* ================================================================ */}
       <WidgetErrorBoundary fallbackTitle="Activity Comparison failed">
@@ -118,21 +103,6 @@ export function DashboardContent() {
           dualAxis
           dateRange={dateRange}
           height={400}
-        />
-      </WidgetErrorBoundary>
-
-      {/* ================================================================ */}
-      {/* Bar Charts + Donut Chart (categorical shape) */}
-      {/* ================================================================ */}
-      <WidgetErrorBoundary fallbackTitle="Top Performers chart failed">
-        <BarChart
-          assetKey="candidate_call_count"
-          title="Top Performers: Candidate Calls"
-          dimension="consultant"
-          orientation="vertical"
-          color="#00E5C0"
-          dateRange={dateRange}
-          limit={8}
         />
       </WidgetErrorBoundary>
 
