@@ -727,3 +727,158 @@ export async function queryCategoricalMultiSeries(
     format: 'number',
   };
 }
+
+// ============================================================================
+// Drill-Down Query (enriched rows with JOINs)
+// ============================================================================
+
+export interface DrillDownResult {
+  rows: Record<string, unknown>[];
+  totalRows: number;
+}
+
+export async function queryDrillDown(params: {
+  assetKey: string;
+  filters?: DataAssetParams['filters'];
+  page: number;
+  pageSize: number;
+}): Promise<DrillDownResult> {
+  const supabase = createClient();
+
+  // Fetch asset definition
+  const { data: asset, error: assetError } = await supabase
+    .from('data_assets')
+    .select('*')
+    .eq('asset_key', params.assetKey)
+    .single();
+
+  if (assetError || !asset) {
+    throw new Error(`Data asset not found: ${params.assetKey}`);
+  }
+
+  const typedAsset = asset as DataAsset;
+  const { table, dateColumn } = getSourceConfig(typedAsset);
+  const activityTypes = (typedAsset.metadata as Record<string, unknown>)?.activity_types as string[] ?? [];
+  const offset = (params.page - 1) * params.pageSize;
+
+  // Build select with PostgREST JOINs per table.
+  // Do NOT use !hint syntax — let PostgREST infer from FK automatically
+  // (matches pattern used in queryCategorical/queryMatrix).
+  let selectClause: string;
+  switch (table) {
+    case 'activities':
+      selectClause = `
+        id, bullhorn_id, activity_type, activity_date, notes,
+        user_profiles(display_name),
+        candidates(first_name, last_name, company_name, occupation),
+        job_orders(title)
+      `;
+      break;
+    case 'job_orders':
+      selectClause = `
+        id, bullhorn_id, title, employment_type, date_added,
+        user_profiles(display_name),
+        client_corporations(name)
+      `;
+      break;
+    case 'placements':
+      selectClause = `
+        id, bullhorn_id, placement_date, revenue_type, fee_amount, gp_per_hour,
+        user_profiles(display_name),
+        candidates(first_name, last_name),
+        job_orders(title)
+      `;
+      break;
+    case 'submission_status_log':
+      selectClause = `
+        id, detected_at, status_to, comments,
+        user_profiles(display_name)
+      `;
+      break;
+    default:
+      selectClause = '*';
+  }
+
+  let query = supabase
+    .from(table)
+    .select(selectClause, { count: 'exact' });
+
+  // Apply activity_type filter for activities table
+  if (table === 'activities' && activityTypes.length > 0) {
+    query = query.in('activity_type', activityTypes);
+  }
+
+  query = applyDateRange(query, params.filters?.dateRange, dateColumn);
+  query = applyConsultantFilter(query, params.filters);
+  query = query.order(dateColumn, { ascending: false });
+  query = query.range(offset, offset + params.pageSize - 1);
+
+  const { data, count, error } = await query;
+
+  if (error) {
+    throw new Error(`Drill-down query failed: ${error.message}`);
+  }
+
+  // Flatten joined relations into readable fields
+  const rawRows = (data || []) as unknown as Record<string, unknown>[];
+  const rows = rawRows.map((row) => {
+    const flat: Record<string, unknown> = { ...row };
+
+    // Consultant name
+    const profile = Array.isArray(row.user_profiles)
+      ? (row.user_profiles as Record<string, unknown>[])[0]
+      : row.user_profiles as Record<string, unknown> | null;
+    flat.consultant_name = profile?.display_name || 'Unknown';
+    delete flat.user_profiles;
+
+    // Candidate / client contact name + company + title
+    if ('candidates' in row) {
+      const candidate = Array.isArray(row.candidates)
+        ? (row.candidates as Record<string, unknown>[])[0]
+        : row.candidates as Record<string, unknown> | null;
+      if (candidate) {
+        flat.candidate_name = [candidate.first_name, candidate.last_name]
+          .filter(Boolean)
+          .join(' ') || 'Unknown';
+        flat.contact_company = candidate.company_name || '-';
+        flat.contact_title = candidate.occupation || '-';
+      } else {
+        flat.candidate_name = '-';
+        flat.contact_company = '-';
+        flat.contact_title = '-';
+      }
+      delete flat.candidates;
+    }
+
+    // Job title
+    if ('job_orders' in row) {
+      const job = Array.isArray(row.job_orders)
+        ? (row.job_orders as Record<string, unknown>[])[0]
+        : row.job_orders as Record<string, unknown> | null;
+      flat.job_title = job?.title || '-';
+      delete flat.job_orders;
+    }
+
+    // Client name
+    if ('client_corporations' in row) {
+      const client = Array.isArray(row.client_corporations)
+        ? (row.client_corporations as Record<string, unknown>[])[0]
+        : row.client_corporations as Record<string, unknown> | null;
+      flat.client_name = client?.name || '-';
+      delete flat.client_corporations;
+    }
+
+    // For placements: use fee_amount for permanent, gp_per_hour for contract
+    if (table === 'placements') {
+      const revType = flat.revenue_type as string;
+      if (revType === 'contract') {
+        flat.fee_amount = flat.gp_per_hour;
+      }
+      delete flat.gp_per_hour;
+    }
+
+    return flat;
+  });
+
+  return { rows, totalRows: count || 0 };
+}

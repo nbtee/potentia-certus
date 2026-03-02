@@ -17,7 +17,6 @@ import {
   Users,
   Coffee,
   TrendingUp,
-  UserCheck,
   Briefcase,
 } from 'lucide-react';
 import { useDateRange } from '@/lib/contexts/filter-context';
@@ -82,15 +81,7 @@ export function DashboardContent() {
             dateRange={dateRange}
           />
         </WidgetErrorBoundary>
-        <WidgetErrorBoundary fallbackTitle="Reference Checks failed">
-          <KPICard
-            assetKey="reference_check_count"
-            icon={UserCheck}
-            colorScheme="green"
-            dateRange={dateRange}
-          />
-        </WidgetErrorBoundary>
-        <WidgetErrorBoundary fallbackTitle="New Jobs failed">
+<WidgetErrorBoundary fallbackTitle="New Jobs failed">
           <KPICard
             assetKey="job_order_count"
             icon={Briefcase}

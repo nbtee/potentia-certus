@@ -1,6 +1,8 @@
 'use client';
 
 import { FilterProvider } from '@/lib/contexts/filter-context';
+import { DrillDownProvider } from '@/lib/contexts/drill-down-context';
+import { DrillDownSheet } from '@/components/drill-down/drill-down-sheet';
 import { ReactNode } from 'react';
 
 interface DashboardWrapperProps {
@@ -16,7 +18,10 @@ export function DashboardWrapper({
 }: DashboardWrapperProps) {
   return (
     <FilterProvider userId={userId} userHierarchyNodeId={userHierarchyNodeId}>
-      {children}
+      <DrillDownProvider>
+        {children}
+        <DrillDownSheet />
+      </DrillDownProvider>
     </FilterProvider>
   );
 }

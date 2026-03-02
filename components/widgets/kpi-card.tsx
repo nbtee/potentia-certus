@@ -9,9 +9,10 @@
 
 import { useWidgetData } from '@/lib/data/use-widget-data';
 import { isSingleValue } from '@/lib/data/shape-contracts';
+import { useDrillDown } from '@/lib/contexts/drill-down-context';
 import { formatValue } from '@/lib/utils/format';
 import { motion } from 'framer-motion';
-import { ArrowUp, ArrowDown, Minus, type LucideIcon } from 'lucide-react';
+import { ArrowUp, ArrowDown, Minus, Maximize2, type LucideIcon } from 'lucide-react';
 
 export interface KPICardProps {
   assetKey: string;
@@ -58,6 +59,7 @@ export function KPICard({
   dateRange,
   consultantId,
 }: KPICardProps) {
+  const { openDrillDown } = useDrillDown();
   const { data, isLoading, error } = useWidgetData({
     assetKey,
     shape: 'single_value',
@@ -110,12 +112,18 @@ export function KPICard({
         ? 'text-red-600 bg-red-50'
         : 'text-gray-600 bg-gray-50';
 
+  const handleClick = () => {
+    if (!data || !isSingleValue(data.data)) return;
+    openDrillDown({ assetKey, title: data.data.label });
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -4, transition: { duration: 0.2 } }}
-      className={`relative overflow-hidden rounded-xl border ${colors.border} bg-gradient-to-br ${colors.gradient} p-6 shadow-sm backdrop-blur-sm transition-shadow hover:shadow-md`}
+      onClick={handleClick}
+      className={`group relative cursor-pointer overflow-hidden rounded-xl border ${colors.border} bg-gradient-to-br ${colors.gradient} p-6 shadow-sm backdrop-blur-sm transition-shadow hover:shadow-md`}
     >
       {/* Icon */}
       <motion.div
@@ -157,6 +165,9 @@ export function KPICard({
           </span>
         </motion.div>
       )}
+
+      {/* Drill-down hint */}
+      <Maximize2 className="absolute right-3 bottom-3 h-3.5 w-3.5 text-gray-400 opacity-0 transition-opacity group-hover:opacity-100" />
 
       {/* Shine effect on hover */}
       <motion.div

@@ -10,6 +10,8 @@ import {
   useSaveLayout,
 } from '@/lib/dashboards/hooks';
 import { FilterProvider, useDateRange } from '@/lib/contexts/filter-context';
+import { DrillDownProvider } from '@/lib/contexts/drill-down-context';
+import { DrillDownSheet } from '@/components/drill-down/drill-down-sheet';
 import { EnhancedFilterBar } from '@/components/enhanced-filter-bar';
 import { DashboardGrid } from '@/components/dashboard/dashboard-grid';
 import { AddWidgetDialog } from '@/components/dashboard/add-widget-dialog';
@@ -44,13 +46,16 @@ export function DashboardView({
 }: DashboardViewProps) {
   return (
     <FilterProvider userId={userId} userHierarchyNodeId={userHierarchyNodeId}>
-      <DashboardViewInner
-        initialDashboard={initialDashboard}
-        isOwner={isOwner}
-        userRole={userRole}
-        userId={userId}
-        userHierarchyNodeId={userHierarchyNodeId}
-      />
+      <DrillDownProvider>
+        <DashboardViewInner
+          initialDashboard={initialDashboard}
+          isOwner={isOwner}
+          userRole={userRole}
+          userId={userId}
+          userHierarchyNodeId={userHierarchyNodeId}
+        />
+        <DrillDownSheet />
+      </DrillDownProvider>
     </FilterProvider>
   );
 }

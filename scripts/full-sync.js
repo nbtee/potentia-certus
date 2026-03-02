@@ -184,7 +184,7 @@ async function syncCandidates(pool) {
   console.log('\n[2] Syncing candidates (from Persons)...');
 
   const result = await pool.request().query(
-    `SELECT id, firstName, lastName, address1, address2, city, state, zip
+    `SELECT id, firstName, lastName, address1, address2, city, state, zip, JobTitle, _subtype
      FROM TargetJobsDB.Persons`
   );
 
@@ -197,6 +197,8 @@ async function syncCandidates(pool) {
     city: r.city || null,
     state: r.state || null,
     zip: r.zip || null,
+    occupation: r.JobTitle || null,
+    // company_name: not available in mirror — need ClientContact→ClientCorporation link
     synced_at: new Date().toISOString(),
   }));
 
@@ -279,6 +281,7 @@ async function syncActivities(pool) {
   const rows = result.recordset.map((r) => ({
     bullhorn_id: r.Id,
     activity_type: r.action || 'Unknown',
+    // notes: comments column not available in SQL Server mirror
     consultant_id: lookups.consultants.get(r.CorporateUserId) || null,
     candidate_id: lookups.candidates.get(r.personReferenceId) || null,
     job_order_id: lookups.jobOrders.get(r.JobOrderId) || null,
