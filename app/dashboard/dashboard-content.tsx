@@ -2,7 +2,6 @@
 
 import {
   KPICard,
-  AnimatedLeaderboard,
   Heatmap,
   MultiLineChart,
   RevenueLeaderboard,
@@ -110,23 +109,13 @@ export function DashboardContent() {
       {/* ================================================================ */}
       {/* Leaderboards (categorical + revenue) */}
       {/* ================================================================ */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <WidgetErrorBoundary fallbackTitle="Leaderboard failed">
-          <AnimatedLeaderboard
-            assetKey="candidate_call_count"
-            title="Candidate Call Leaderboard"
-            dateRange={dateRange}
-            limit={8}
-          />
-        </WidgetErrorBoundary>
-        <WidgetErrorBoundary fallbackTitle="Revenue Leaderboard failed">
-          <RevenueLeaderboard
-            title="Revenue Leaderboard"
-            dateRange={dateRange}
-            limit={10}
-          />
-        </WidgetErrorBoundary>
-      </div>
+      <WidgetErrorBoundary fallbackTitle="Revenue Leaderboard failed">
+        <RevenueLeaderboard
+          title="Revenue Leaderboard"
+          dateRange={dateRange}
+          limit={10}
+        />
+      </WidgetErrorBoundary>
 
       {/* ================================================================ */}
       {/* Sales Performance (horizontal stacked bar) */}
