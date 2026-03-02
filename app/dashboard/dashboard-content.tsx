@@ -41,22 +41,7 @@ export function DashboardContent() {
       {/* KPI Cards (single_value shape) */}
       {/* ================================================================ */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        <WidgetErrorBoundary fallbackTitle="Candidate Calls failed">
-          <KPICard
-            assetKey="candidate_call_count"
-            icon={Phone}
-            colorScheme="teal"
-            dateRange={dateRange}
-          />
-        </WidgetErrorBoundary>
-        <WidgetErrorBoundary fallbackTitle="Candidate Meetings failed">
-          <KPICard
-            assetKey="candidate_meeting_count"
-            icon={Users}
-            colorScheme="green"
-            dateRange={dateRange}
-          />
-        </WidgetErrorBoundary>
+        {/* Row 1: Sales leading activities */}
         <WidgetErrorBoundary fallbackTitle="Client Calls failed">
           <KPICard
             assetKey="client_call_count"
@@ -73,14 +58,6 @@ export function DashboardContent() {
             dateRange={dateRange}
           />
         </WidgetErrorBoundary>
-        <WidgetErrorBoundary fallbackTitle="Submittals failed">
-          <KPICard
-            assetKey="submittal_count"
-            icon={Send}
-            colorScheme="teal"
-            dateRange={dateRange}
-          />
-        </WidgetErrorBoundary>
         <WidgetErrorBoundary fallbackTitle="First Interviews failed">
           <KPICard
             assetKey="first_interview_count"
@@ -89,19 +66,45 @@ export function DashboardContent() {
             dateRange={dateRange}
           />
         </WidgetErrorBoundary>
-        <WidgetErrorBoundary fallbackTitle="Strategic Referrals failed">
+        {/* Row 2: Delivery activities */}
+        <WidgetErrorBoundary fallbackTitle="Candidate Calls failed">
           <KPICard
-            assetKey="strategic_referral_count"
-            icon={Star}
-            colorScheme="orange"
+            assetKey="candidate_call_count"
+            icon={Phone}
+            colorScheme="teal"
             dateRange={dateRange}
           />
         </WidgetErrorBoundary>
+        <WidgetErrorBoundary fallbackTitle="Candidate Meetings failed">
+          <KPICard
+            assetKey="candidate_meeting_count"
+            icon={Users}
+            colorScheme="green"
+            dateRange={dateRange}
+          />
+        </WidgetErrorBoundary>
+        <WidgetErrorBoundary fallbackTitle="Submittals failed">
+          <KPICard
+            assetKey="submittal_count"
+            icon={Send}
+            colorScheme="teal"
+            dateRange={dateRange}
+          />
+        </WidgetErrorBoundary>
+        {/* Row 3: Outcomes */}
         <WidgetErrorBoundary fallbackTitle="New Jobs failed">
           <KPICard
             assetKey="job_order_count"
             icon={Briefcase}
             colorScheme="purple"
+            dateRange={dateRange}
+          />
+        </WidgetErrorBoundary>
+        <WidgetErrorBoundary fallbackTitle="Strategic Referrals failed">
+          <KPICard
+            assetKey="strategic_referral_count"
+            icon={Star}
+            colorScheme="orange"
             dateRange={dateRange}
           />
         </WidgetErrorBoundary>
