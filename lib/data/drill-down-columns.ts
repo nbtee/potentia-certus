@@ -49,7 +49,7 @@ const clientActivityColumns: DrillDownColumn[] = [
   { key: 'consultant_name', label: 'Consultant', type: 'string' },
   { key: 'candidate_name', label: 'Client Contact', type: 'string' },
   { key: 'contact_title', label: 'Title', type: 'string' },
-  { key: 'job_title', label: 'Job', type: 'string' },
+  { key: 'contact_company', label: 'Company', type: 'string' },
 ];
 
 /** Get activity columns based on asset's activity types */
