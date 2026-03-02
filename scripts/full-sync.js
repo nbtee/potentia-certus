@@ -347,7 +347,14 @@ async function syncPlacements(pool) {
     let gpPerHour = null;
 
     if (revenueType === 'permanent') {
-      feeAmount = r.Margin || 0;
+      // Contract-to-Perm: Margin is null; revenue = salary × fee percentage
+      // Pure Permanent: Margin is the dollar fee amount
+      const isContractToPerm = r.EmploymentType && r.EmploymentType.toLowerCase().includes('contract-to-perm');
+      if (isContractToPerm && r.salary && r.fee) {
+        feeAmount = r.salary * r.fee;
+      } else {
+        feeAmount = r.Margin || 0;
+      }
     } else {
       // For contract, Margin is GP; if SalaryUnit is Daily, convert to hourly (÷8)
       if (r.Margin) {
