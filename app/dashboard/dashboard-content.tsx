@@ -5,9 +5,7 @@ import {
   TimeSeriesChart,
   BarChart,
   DonutChart,
-  TargetGauge,
   AnimatedLeaderboard,
-  TimeSeriesCombo,
   Heatmap,
   StackedBarChart,
   MultiLineChart,
@@ -83,7 +81,7 @@ export function DashboardContent() {
             dateRange={dateRange}
           />
         </WidgetErrorBoundary>
-<WidgetErrorBoundary fallbackTitle="New Jobs failed">
+        <WidgetErrorBoundary fallbackTitle="New Jobs failed">
           <KPICard
             assetKey="job_order_count"
             icon={Briefcase}
@@ -94,85 +92,17 @@ export function DashboardContent() {
       </div>
 
       {/* ================================================================ */}
-      {/* Target Gauges (single_value shape) */}
-      {/* ================================================================ */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <WidgetErrorBoundary fallbackTitle="Call Target failed">
-          <TargetGauge
-            assetKey="candidate_call_count"
-            title="Candidate Call Target"
-            targetValue={200}
-            targetLabel="Monthly Target"
-            dateRange={dateRange}
-          />
-        </WidgetErrorBoundary>
-        <WidgetErrorBoundary fallbackTitle="BD Call Target failed">
-          <TargetGauge
-            assetKey="bd_call_count"
-            title="BD Call Target"
-            targetValue={50}
-            targetLabel="Monthly Target"
-            dateRange={dateRange}
-          />
-        </WidgetErrorBoundary>
-        <WidgetErrorBoundary fallbackTitle="Meeting Target failed">
-          <TargetGauge
-            assetKey="candidate_meeting_count"
-            title="Meeting Target"
-            targetValue={30}
-            targetLabel="Monthly Target"
-            dateRange={dateRange}
-          />
-        </WidgetErrorBoundary>
-        <WidgetErrorBoundary fallbackTitle="Client Meeting Target failed">
-          <TargetGauge
-            assetKey="client_meeting_count"
-            title="Client Meeting Target"
-            targetValue={20}
-            targetLabel="Monthly Target"
-            dateRange={dateRange}
-          />
-        </WidgetErrorBoundary>
-      </div>
-
-      {/* ================================================================ */}
       {/* Time Series Charts (time_series shape) */}
       {/* ================================================================ */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <WidgetErrorBoundary fallbackTitle="Candidate Call chart failed">
-          <TimeSeriesChart
-            assetKey="candidate_call_count"
-            title="Candidate Call Activity"
-            chartType="area"
-            color="#00E5C0"
-            dateRange={dateRange}
-          />
-        </WidgetErrorBoundary>
-        <WidgetErrorBoundary fallbackTitle="BD Call chart failed">
-          <TimeSeriesChart
-            assetKey="bd_call_count"
-            title="Business Development Calls"
-            chartType="area"
-            color="#8b5cf6"
-            dateRange={dateRange}
-          />
-        </WidgetErrorBoundary>
-      </div>
-
-      {/* ================================================================ */}
-      {/* New Jobs Time Series (time_series shape) */}
-      {/* ================================================================ */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <WidgetErrorBoundary fallbackTitle="New Jobs chart failed">
-          <TimeSeriesChart
-            assetKey="job_order_count"
-            title="New Jobs Over Time"
-            chartType="area"
-            color="#8b5cf6"
-            dateRange={dateRange}
-          />
-        </WidgetErrorBoundary>
-      </div>
+      <WidgetErrorBoundary fallbackTitle="Candidate Call chart failed">
+        <TimeSeriesChart
+          assetKey="candidate_call_count"
+          title="Candidate Call Activity"
+          chartType="area"
+          color="#00E5C0"
+          dateRange={dateRange}
+        />
+      </WidgetErrorBoundary>
 
       {/* ================================================================ */}
       {/* Multi-Line Comparison (Activity vs Outcomes) */}
@@ -191,30 +121,6 @@ export function DashboardContent() {
           height={400}
         />
       </WidgetErrorBoundary>
-
-      {/* ================================================================ */}
-      {/* Combo Chart (time_series shape, bar + moving average) */}
-      {/* ================================================================ */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <WidgetErrorBoundary fallbackTitle="Combo chart failed">
-          <TimeSeriesCombo
-            assetKey="candidate_call_count"
-            title="Candidate Calls: Daily + 7-Day Average"
-            barColor="#00E5C0"
-            lineColor="#ef4444"
-            dateRange={dateRange}
-          />
-        </WidgetErrorBoundary>
-        <WidgetErrorBoundary fallbackTitle="Combo chart failed">
-          <TimeSeriesCombo
-            assetKey="bd_call_count"
-            title="BD Calls: Daily + 7-Day Average"
-            barColor="#8b5cf6"
-            lineColor="#f59e0b"
-            dateRange={dateRange}
-          />
-        </WidgetErrorBoundary>
-      </div>
 
       {/* ================================================================ */}
       {/* Bar Charts + Donut Chart (categorical shape) */}
