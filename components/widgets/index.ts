@@ -11,4 +11,5 @@ export { DataTable } from './data-table';
 export { Heatmap } from './heatmap';
 export { StackedBarChart } from './stacked-bar-chart';
 export { MultiLineChart } from './multi-line-chart';
+export { RevenueLeaderboard } from './revenue-leaderboard';
 export { WidgetErrorBoundary } from './widget-error-boundary';

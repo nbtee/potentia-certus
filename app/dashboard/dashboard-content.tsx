@@ -11,6 +11,7 @@ import {
   Heatmap,
   StackedBarChart,
   MultiLineChart,
+  RevenueLeaderboard,
   WidgetErrorBoundary,
 } from '@/components/widgets';
 import {
@@ -242,7 +243,7 @@ export function DashboardContent() {
       </div>
 
       {/* ================================================================ */}
-      {/* Leaderboard + Stacked Bar (categorical shape) */}
+      {/* Leaderboards (categorical + revenue) */}
       {/* ================================================================ */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <WidgetErrorBoundary fallbackTitle="Leaderboard failed">
@@ -253,15 +254,26 @@ export function DashboardContent() {
             limit={8}
           />
         </WidgetErrorBoundary>
-        <WidgetErrorBoundary fallbackTitle="Stacked Bar failed">
-          <StackedBarChart
-            assetKey="candidate_call_count"
-            title="Activity Breakdown by Consultant"
+        <WidgetErrorBoundary fallbackTitle="Revenue Leaderboard failed">
+          <RevenueLeaderboard
+            title="Revenue Leaderboard"
             dateRange={dateRange}
-            limit={6}
+            limit={10}
           />
         </WidgetErrorBoundary>
       </div>
+
+      {/* ================================================================ */}
+      {/* Stacked Bar (categorical shape) */}
+      {/* ================================================================ */}
+      <WidgetErrorBoundary fallbackTitle="Stacked Bar failed">
+        <StackedBarChart
+          assetKey="candidate_call_count"
+          title="Activity Breakdown by Consultant"
+          dateRange={dateRange}
+          limit={6}
+        />
+      </WidgetErrorBoundary>
 
       {/* ================================================================ */}
       {/* Heatmap (matrix shape) */}
