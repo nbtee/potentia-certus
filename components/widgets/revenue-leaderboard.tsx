@@ -91,9 +91,12 @@ function useRevenueLeaderboard(dateRange?: DateRange, limit: number = 10) {
           job_orders(title, client_corporations(name))
         `);
 
-      // Date range filter on placement_date
+      // Date range filter on start_date (when revenue begins, not when placement was created)
+      // Permanent placements without start_date fall back to placement_date
       if (dateRange) {
-        query = query.gte('placement_date', dateRange.start).lt('placement_date', nextDay(dateRange.end));
+        query = query.or(
+          `and(start_date.gte.${dateRange.start},start_date.lt.${nextDay(dateRange.end)}),and(start_date.is.null,placement_date.gte.${dateRange.start},placement_date.lt.${nextDay(dateRange.end)})`
+        );
       }
 
       // Scope filter
