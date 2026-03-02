@@ -6,6 +6,7 @@
  */
 
 import { createClient } from '@/lib/supabase/client';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import type { DataAsset } from '@/lib/data-assets/types';
 import type {
   DataAssetParams,
@@ -279,11 +280,7 @@ async function queryCategorical(
   query = applyDateRange(query, params.filters?.dateRange, dateColumn);
   query = applyConsultantFilter(query, params.filters);
 
-  const { data, error } = await query;
-
-  if (error) {
-    throw new Error(`Query failed: ${error.message}`);
-  }
+  const data = await fetchAllRows(query) as any[];
 
   // Group by consultant and series column simultaneously
   const consultantNames = new Map<string, string>();
@@ -363,18 +360,14 @@ async function queryTimeSeries(
   query = applyDateRange(query, params.filters?.dateRange, dateColumn);
   query = applyConsultantFilter(query, params.filters);
 
-  const { data, error } = await query;
-
-  if (error) {
-    throw new Error(`Query failed: ${error.message}`);
-  }
+  const data = await fetchAllRows(query) as any[];
 
   // Group by date
   const grouped = new Map<string, number>();
 
   for (const row of data || []) {
     // Extract date — for timestamptz columns, truncate to date only
-    const rawDate = (row as unknown as Record<string, unknown>)[dateColumn] as string;
+    const rawDate = row[dateColumn] as string;
     const date = rawDate ? rawDate.substring(0, 10) : null;
     if (date) {
       grouped.set(date, (grouped.get(date) || 0) + 1);
@@ -500,11 +493,7 @@ async function queryFunnelStages(
   // but also has 'consultant_id' — use consultant_id for scope filtering
   query = applyConsultantFilter(query, params.filters);
 
-  const { data, error } = await query;
-
-  if (error) {
-    throw new Error(`Funnel query failed: ${error.message}`);
-  }
+  const data = await fetchAllRows(query) as any[];
 
   // Define the pipeline stage order
   const stageOrder = [
@@ -587,11 +576,7 @@ async function queryMatrix(
   query = applyDateRange(query, params.filters?.dateRange);
   query = applyConsultantFilter(query, params.filters);
 
-  const { data, error } = await query;
-
-  if (error) {
-    throw new Error(`Matrix query failed: ${error.message}`);
-  }
+  const data = await fetchAllRows(query) as any[];
 
   // Collect unique consultants and activity types
   const consultantNames = new Map<string, string>();
@@ -660,11 +645,7 @@ export async function queryCategoricalMultiSeries(
   query = applyDateRange(query, params.filters?.dateRange);
   query = applyConsultantFilter(query, params.filters);
 
-  const { data, error } = await query;
-
-  if (error) {
-    throw new Error(`Multi-series query failed: ${error.message}`);
-  }
+  const data = await fetchAllRows(query) as any[];
 
   // Build series: one per activity_type, with consultants as categories
   const seriesMap = new Map<string, Map<string, number>>();

@@ -10,6 +10,7 @@ import {
   StackedBarChart,
   MultiLineChart,
   RevenueLeaderboard,
+  DeliveryPerformanceChart,
   WidgetErrorBoundary,
 } from '@/components/widgets';
 import {
@@ -168,6 +169,17 @@ export function DashboardContent() {
           />
         </WidgetErrorBoundary>
       </div>
+
+      {/* ================================================================ */}
+      {/* Delivery Performance (horizontal stacked bar) */}
+      {/* ================================================================ */}
+      <WidgetErrorBoundary fallbackTitle="Delivery Performance failed">
+        <DeliveryPerformanceChart
+          title="Delivery Activity Top Performers"
+          dateRange={dateRange}
+          limit={10}
+        />
+      </WidgetErrorBoundary>
 
       {/* ================================================================ */}
       {/* Stacked Bar (categorical shape) */}

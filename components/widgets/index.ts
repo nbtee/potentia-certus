@@ -12,4 +12,5 @@ export { Heatmap } from './heatmap';
 export { StackedBarChart } from './stacked-bar-chart';
 export { MultiLineChart } from './multi-line-chart';
 export { RevenueLeaderboard } from './revenue-leaderboard';
+export { DeliveryPerformanceChart } from './delivery-performance-chart';
 export { WidgetErrorBoundary } from './widget-error-boundary';
