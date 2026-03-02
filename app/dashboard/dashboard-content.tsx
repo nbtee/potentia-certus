@@ -10,6 +10,7 @@ import {
   TimeSeriesCombo,
   Heatmap,
   StackedBarChart,
+  MultiLineChart,
   WidgetErrorBoundary,
 } from '@/components/widgets';
 import {
@@ -171,6 +172,24 @@ export function DashboardContent() {
           />
         </WidgetErrorBoundary>
       </div>
+
+      {/* ================================================================ */}
+      {/* Multi-Line Comparison (Activity vs Outcomes) */}
+      {/* ================================================================ */}
+      <WidgetErrorBoundary fallbackTitle="Activity Comparison failed">
+        <MultiLineChart
+          title="Activity vs Outcomes"
+          lines={[
+            { assetKey: 'bd_call_count', label: 'BD Calls', color: '#8b5cf6', yAxisId: 'left' },
+            { assetKey: 'client_meeting_count', label: 'Client Meetings', color: '#f59e0b', yAxisId: 'left' },
+            { assetKey: 'job_order_count', label: 'New Jobs', color: '#00E5C0', yAxisId: 'right' },
+            { assetKey: 'placement_count', label: 'Placements', color: '#ef4444', yAxisId: 'right' },
+          ]}
+          dualAxis
+          dateRange={dateRange}
+          height={400}
+        />
+      </WidgetErrorBoundary>
 
       {/* ================================================================ */}
       {/* Combo Chart (time_series shape, bar + moving average) */}

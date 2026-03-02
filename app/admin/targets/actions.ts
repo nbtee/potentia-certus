@@ -52,7 +52,7 @@ export async function listTargetsForMonth(
   // Fetch all active consultants with their hierarchy node
   const { data: consultants, error: cErr } = await supabase
     .from('user_profiles')
-    .select('id, first_name, last_name, hierarchy_node_id')
+    .select('id, first_name, last_name, hierarchy_node_id, title')
     .eq('is_active', true)
     .order('last_name');
 
@@ -69,7 +69,7 @@ export async function listTargetsForMonth(
   // Fetch existing targets for this month
   const { data: targets, error: tErr } = await supabase
     .from('consultant_targets')
-    .select('id, consultant_id, target_type, target_value')
+    .select('id, consultant_id, target_type, target_value, metadata')
     .eq('period_start', monthStart);
 
   if (tErr) return { error: tErr.message };
@@ -81,7 +81,7 @@ export async function listTargetsForMonth(
 
   const targetsByConsultant = new Map<
     string,
-    Record<string, { id: string; value: number }>
+    Record<string, { id: string; value: number; metadata?: Record<string, unknown> }>
   >();
   for (const t of targets ?? []) {
     if (!targetsByConsultant.has(t.consultant_id)) {
@@ -90,6 +90,7 @@ export async function listTargetsForMonth(
     targetsByConsultant.get(t.consultant_id)![t.target_type] = {
       id: t.id,
       value: Number(t.target_value),
+      ...(t.metadata && Object.keys(t.metadata).length > 0 ? { metadata: t.metadata } : {}),
     };
   }
 
@@ -102,6 +103,7 @@ export async function listTargetsForMonth(
       consultantId: c.id,
       firstName: c.first_name ?? '',
       lastName: c.last_name ?? '',
+      title: c.title ?? null,
       targets: targetsByConsultant.get(c.id) ?? {},
     };
 
@@ -183,6 +185,7 @@ const upsertTargetSchema = z.object({
   target_value: z.number().nonnegative(),
   period_start: z.string().min(1),
   period_end: z.string().min(1),
+  metadata: z.record(z.unknown()).optional(),
 });
 
 const bulkUpsertSchema = z.array(upsertTargetSchema).min(1).max(1000);
@@ -226,10 +229,10 @@ export async function copyFromPreviousMonth(
 
   const supabase = await createClient();
 
-  // Get source month targets
+  // Get source month targets (including metadata for revenue_mode)
   const { data: sourceTargets, error: sErr } = await supabase
     .from('consultant_targets')
-    .select('consultant_id, target_type, target_value')
+    .select('consultant_id, target_type, target_value, metadata')
     .eq('period_start', sourceMonthStart);
 
   if (sErr) return { error: sErr.message };
@@ -261,6 +264,7 @@ export async function copyFromPreviousMonth(
       target_value: Number(t.target_value),
       period_start: destMonthStart,
       period_end: destEnd,
+      ...(t.metadata && Object.keys(t.metadata).length > 0 ? { metadata: t.metadata } : {}),
     }));
 
   if (newTargets.length === 0) {
@@ -306,10 +310,10 @@ export async function applyToMonths(
 
   const supabase = await createClient();
 
-  // Get source month targets
+  // Get source month targets (including metadata for revenue_mode)
   const { data: sourceTargets, error: sErr } = await supabase
     .from('consultant_targets')
-    .select('consultant_id, target_type, target_value')
+    .select('consultant_id, target_type, target_value, metadata')
     .eq('period_start', sourceMonthStart);
 
   if (sErr) return { error: sErr.message };
@@ -351,6 +355,7 @@ export async function applyToMonths(
       target_value: Number(t.target_value),
       period_start: destMonth,
       period_end: destEnd,
+      ...(t.metadata && Object.keys(t.metadata).length > 0 ? { metadata: t.metadata } : {}),
     }));
 
     const { data: count, error } = await supabase.rpc('upsert_monthly_targets', {

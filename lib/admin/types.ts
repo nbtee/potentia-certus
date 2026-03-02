@@ -150,8 +150,9 @@ export interface TargetConsultantRow {
   consultantId: string;
   firstName: string;
   lastName: string;
-  /** Map of target_type → { id, value } for existing targets */
-  targets: Record<string, { id: string; value: number }>;
+  title?: string | null;
+  /** Map of target_type → { id, value, metadata? } for existing targets */
+  targets: Record<string, { id: string; value: number; metadata?: Record<string, unknown> }>;
 }
 
 export interface TargetTeamGroup {
@@ -178,4 +179,5 @@ export interface UpsertTargetInput {
   target_value: number;
   period_start: string;
   period_end: string;
+  metadata?: Record<string, unknown>;
 }

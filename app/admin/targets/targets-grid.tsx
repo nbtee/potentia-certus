@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { AdminPageHeader } from '@/components/admin/admin-page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -31,6 +31,9 @@ import {
 import {
   REVENUE_CATEGORIES,
   ACTIVITY_CATEGORIES,
+  PLACEMENT_TITLES,
+  DEFAULT_REVENUE_MODE,
+  type RevenueMode,
 } from '@/lib/targets/constants';
 import {
   getCurrentMonthStart,
@@ -52,6 +55,9 @@ export function TargetsGrid() {
   const applyMutation = useApplyToMonths();
 
   const [dirtyMap, setDirtyMap] = useState<Map<string, number>>(new Map());
+  const [revenueModeMap, setRevenueModeMap] = useState<Map<string, RevenueMode>>(new Map());
+  const [serverModeMap, setServerModeMap] = useState<Map<string, RevenueMode>>(new Map());
+  const [dirtyModes, setDirtyModes] = useState<Set<string>>(new Set());
   const [showCopyConfirm, setShowCopyConfirm] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [saveMessage, setSaveMessage] = useState('');
@@ -65,11 +71,30 @@ export function TargetsGrid() {
   const copyTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const applyTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  const isDirty = dirtyMap.size > 0;
+  // Initialize revenue modes from server data when grid loads
+  useEffect(() => {
+    if (!grid) return;
+    const modes = new Map<string, RevenueMode>();
+    for (const region of grid.regions) {
+      for (const team of region.teams) {
+        for (const c of team.consultants) {
+          const revTarget = c.targets['revenue'];
+          const mode = (revTarget?.metadata?.revenue_mode as RevenueMode) ?? DEFAULT_REVENUE_MODE;
+          modes.set(c.consultantId, mode);
+        }
+      }
+    }
+    setRevenueModeMap(modes);
+    setServerModeMap(new Map(modes));
+    setDirtyModes(new Set());
+  }, [grid]);
+
+  const isDirty = dirtyMap.size > 0 || dirtyModes.size > 0;
 
   const handleMonthChange = useCallback((month: Date) => {
     setCurrentMonth(month);
     setDirtyMap(new Map());
+    setDirtyModes(new Set());
     setSaveState('idle');
     setCopyState('idle');
     setApplyState('idle');
@@ -97,20 +122,78 @@ export function TargetsGrid() {
     [saveState]
   );
 
+  const handleRevenueModeChange = useCallback(
+    (consultantId: string, mode: RevenueMode) => {
+      setRevenueModeMap((prev) => {
+        const next = new Map(prev);
+        next.set(consultantId, mode);
+        return next;
+      });
+      // Track dirty modes
+      const serverMode = serverModeMap.get(consultantId) ?? DEFAULT_REVENUE_MODE;
+      setDirtyModes((prev) => {
+        const next = new Set(prev);
+        if (mode === serverMode) {
+          next.delete(consultantId);
+        } else {
+          next.add(consultantId);
+        }
+        return next;
+      });
+      // Clear revenue value to 0 when mode changes (different units)
+      const key = `${consultantId}:revenue`;
+      setDirtyMap((prev) => {
+        const next = new Map(prev);
+        next.set(key, 0);
+        return next;
+      });
+      if (saveState === 'saved' || saveState === 'error') {
+        setSaveState('idle');
+        setErrorMessage('');
+      }
+    },
+    [serverModeMap, saveState]
+  );
+
   async function handleSave() {
-    if (!grid || dirtyMap.size === 0) return;
+    if (!grid || (dirtyMap.size === 0 && dirtyModes.size === 0)) return;
     clearTimeout(saveTimerRef.current);
     setSaveState('saving');
     setErrorMessage('');
-    const count = dirtyMap.size;
+
+    // Merge mode-only changes into dirtyMap so they get saved
+    const mergedDirty = new Map(dirtyMap);
+    for (const consultantId of dirtyModes) {
+      const key = `${consultantId}:revenue`;
+      if (!mergedDirty.has(key)) {
+        // Find current server value to preserve it, just updating metadata
+        let serverVal = 0;
+        outer: for (const region of grid.regions) {
+          for (const team of region.teams) {
+            for (const c of team.consultants) {
+              if (c.consultantId === consultantId) {
+                serverVal = c.targets['revenue']?.value ?? 0;
+                break outer;
+              }
+            }
+          }
+        }
+        mergedDirty.set(key, serverVal);
+      }
+    }
+
+    const count = mergedDirty.size;
     const payload = buildUpsertPayload(
-      dirtyMap,
+      mergedDirty,
       grid.monthStart,
-      grid.monthEnd
+      grid.monthEnd,
+      revenueModeMap,
     );
     try {
       await upsertMutation.mutateAsync(payload);
       setDirtyMap(new Map());
+      setDirtyModes(new Set());
+      setServerModeMap(new Map(revenueModeMap));
       setSaveState('saved');
       setSaveMessage(`${count} target${count !== 1 ? 's' : ''} saved`);
       saveTimerRef.current = setTimeout(() => setSaveState('idle'), 3000);
@@ -153,6 +236,8 @@ export function TargetsGrid() {
 
   function handleDiscard() {
     setDirtyMap(new Map());
+    setRevenueModeMap(new Map(serverModeMap));
+    setDirtyModes(new Set());
     setSaveState('idle');
     setErrorMessage('');
   }
@@ -216,6 +301,9 @@ export function TargetsGrid() {
                 categories={REVENUE_CATEGORIES}
                 dirtyMap={dirtyMap}
                 onCellChange={handleCellChange}
+                revenueModeMap={revenueModeMap}
+                onRevenueModeChange={handleRevenueModeChange}
+                placementTitles={PLACEMENT_TITLES}
               />
             </TabsContent>
 

@@ -10,4 +10,5 @@ export { ConversionIndicator } from './conversion-indicator';
 export { DataTable } from './data-table';
 export { Heatmap } from './heatmap';
 export { StackedBarChart } from './stacked-bar-chart';
+export { MultiLineChart } from './multi-line-chart';
 export { WidgetErrorBoundary } from './widget-error-boundary';

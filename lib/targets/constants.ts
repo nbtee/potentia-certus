@@ -6,12 +6,22 @@ export interface TargetCategory {
   activityTypes: string[];
 }
 
+/** Titles that get placement count targets instead of revenue targets */
+export const PLACEMENT_TITLES = new Set(['talent_manager', 'senior_talent_manager']);
+
 export const TARGET_CATEGORIES: TargetCategory[] = [
   {
     key: 'revenue',
     label: 'Revenue',
     tab: 'revenue',
     unit: 'currency',
+    activityTypes: [],
+  },
+  {
+    key: 'placements',
+    label: 'Placements',
+    tab: 'revenue',
+    unit: 'count',
     activityTypes: [],
   },
   {
@@ -78,3 +88,16 @@ export const ACTIVITY_CATEGORIES = TARGET_CATEGORIES.filter(
 export const TARGET_CATEGORY_MAP = Object.fromEntries(
   TARGET_CATEGORIES.map((c) => [c.key, c])
 ) as Record<string, TargetCategory>;
+
+// =============================================================================
+// Revenue Mode (GP per Hour vs Dollar Figure)
+// =============================================================================
+
+export type RevenueMode = 'gp_per_hour' | 'dollar';
+
+export const REVENUE_MODE_OPTIONS: { value: RevenueMode; label: string; shortLabel: string }[] = [
+  { value: 'dollar', label: 'Dollar Figure', shortLabel: '$' },
+  { value: 'gp_per_hour', label: 'GP per Hour', shortLabel: '$/hr' },
+];
+
+export const DEFAULT_REVENUE_MODE: RevenueMode = 'dollar';
