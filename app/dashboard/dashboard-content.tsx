@@ -18,6 +18,7 @@ import {
   Coffee,
   TrendingUp,
   UserCheck,
+  Briefcase,
 } from 'lucide-react';
 import { useDateRange } from '@/lib/contexts/filter-context';
 
@@ -89,6 +90,14 @@ export function DashboardContent() {
             dateRange={dateRange}
           />
         </WidgetErrorBoundary>
+        <WidgetErrorBoundary fallbackTitle="New Jobs failed">
+          <KPICard
+            assetKey="job_order_count"
+            icon={Briefcase}
+            colorScheme="purple"
+            dateRange={dateRange}
+          />
+        </WidgetErrorBoundary>
       </div>
 
       {/* ================================================================ */}
@@ -150,6 +159,21 @@ export function DashboardContent() {
           <TimeSeriesChart
             assetKey="bd_call_count"
             title="Business Development Calls"
+            chartType="area"
+            color="#8b5cf6"
+            dateRange={dateRange}
+          />
+        </WidgetErrorBoundary>
+      </div>
+
+      {/* ================================================================ */}
+      {/* New Jobs Time Series (time_series shape) */}
+      {/* ================================================================ */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <WidgetErrorBoundary fallbackTitle="New Jobs chart failed">
+          <TimeSeriesChart
+            assetKey="job_order_count"
+            title="New Jobs Over Time"
             chartType="area"
             color="#8b5cf6"
             dateRange={dateRange}

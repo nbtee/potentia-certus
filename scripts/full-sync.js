@@ -118,6 +118,7 @@ const lookups = {
   candidates: new Map(),         // bullhorn_id → uuid
   jobOrders: new Map(),          // bullhorn_id → uuid
   consultants: new Map(),        // bullhorn_corporate_user_id → uuid
+  consultantsByNativeId: new Map(), // bullhorn_native_id (IdInDataSrc) → uuid
   activities: new Map(),         // bullhorn_id → uuid
 };
 
@@ -127,14 +128,19 @@ const lookups = {
 
 async function buildConsultantLookup() {
   console.log('\n[0] Building consultant lookup from user_profiles...');
-  const data = await fetchAll('user_profiles', 'id, bullhorn_corporate_user_id');
+  const data = await fetchAll('user_profiles', 'id, bullhorn_corporate_user_id, bullhorn_native_id');
 
   data
     .filter((u) => u.bullhorn_corporate_user_id != null)
     .forEach((u) => {
       lookups.consultants.set(u.bullhorn_corporate_user_id, u.id);
     });
-  console.log(`  ${lookups.consultants.size} consultants mapped`);
+  data
+    .filter((u) => u.bullhorn_native_id != null)
+    .forEach((u) => {
+      lookups.consultantsByNativeId.set(u.bullhorn_native_id, u.id);
+    });
+  console.log(`  ${lookups.consultants.size} consultants mapped (${lookups.consultantsByNativeId.size} with native ID)`);
 }
 
 // ============================================================================
@@ -233,7 +239,7 @@ async function syncJobOrders(pool) {
     return {
       bullhorn_id: r.Id,
       title: r.Title || 'Untitled',
-      consultant_id: lookups.consultants.get(r.OwnerId) || null,
+      consultant_id: lookups.consultantsByNativeId.get(r.OwnerId) || null,
       client_corporation_id: lookups.clientCorporations.get(r.ClientCorporationId) || null,
       employment_type: empType,
       date_added: r.DateAdded ? new Date(r.DateAdded).toISOString() : null,
@@ -349,7 +355,7 @@ async function syncPlacements(pool) {
 
     return {
       bullhorn_id: r.Id,
-      consultant_id: lookups.consultants.get(r.OwnerId) || null,
+      consultant_id: lookups.consultantsByNativeId.get(r.OwnerId) || null,
       candidate_id: lookups.candidates.get(r.CandidateId) || null,
       job_order_id: lookups.jobOrders.get(r.JobOrderId) || null,
       revenue_type: revenueType,

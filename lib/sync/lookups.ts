@@ -36,13 +36,15 @@ export { getServiceClient, fetchAll };
 export async function buildLookupMaps(): Promise<LookupMaps> {
   const maps: LookupMaps = {
     consultants: new Map(),
+    consultantsByNativeId: new Map(),
     candidates: new Map(),
     jobOrders: new Map(),
     clientCorporations: new Map(),
   };
 
-  // Consultants: bullhorn_corporate_user_id → uuid
-  const users = await fetchAll('user_profiles', 'id, bullhorn_corporate_user_id');
+  // Consultants: bullhorn_corporate_user_id → uuid (used for Notes.CorporateUserId)
+  // Also: bullhorn_native_id → uuid (used for JobOrders.OwnerId, Placements.OwnerId)
+  const users = await fetchAll('user_profiles', 'id, bullhorn_corporate_user_id, bullhorn_native_id');
   users
     .filter((u) => u.bullhorn_corporate_user_id != null)
     .forEach((u) => {
@@ -51,7 +53,15 @@ export async function buildLookupMaps(): Promise<LookupMaps> {
         u.id as string
       );
     });
-  console.log(`  Lookup: ${maps.consultants.size} consultants`);
+  users
+    .filter((u) => u.bullhorn_native_id != null)
+    .forEach((u) => {
+      maps.consultantsByNativeId.set(
+        u.bullhorn_native_id as number,
+        u.id as string
+      );
+    });
+  console.log(`  Lookup: ${maps.consultants.size} consultants (${maps.consultantsByNativeId.size} with native ID)`);
 
   // Candidates: bullhorn_id → uuid
   const cands = await fetchAll('candidates', 'id, bullhorn_id');

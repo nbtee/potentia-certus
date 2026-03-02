@@ -206,7 +206,7 @@ export async function syncPlacements(
 
     return {
       bullhorn_id: r.Id,
-      consultant_id: lookups.consultants.get(r.OwnerId as number) || null,
+      consultant_id: lookups.consultantsByNativeId.get(r.OwnerId as number) || null,
       candidate_id: lookups.candidates.get(r.CandidateId as number) || null,
       job_order_id: lookups.jobOrders.get(r.JobOrderId as number) || null,
       revenue_type: revenueType,
@@ -275,7 +275,7 @@ export async function syncJobOrders(
     return {
       bullhorn_id: r.Id,
       title: (r.Title as string) || 'Untitled',
-      consultant_id: lookups.consultants.get(r.OwnerId as number) || null,
+      consultant_id: lookups.consultantsByNativeId.get(r.OwnerId as number) || null,
       client_corporation_id:
         lookups.clientCorporations.get(r.ClientCorporationId as number) || null,
       employment_type: empType,

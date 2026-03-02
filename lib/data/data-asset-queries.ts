@@ -58,6 +58,28 @@ function applyDateRange<T extends { gte: (col: string, val: string) => T; lt: (c
 }
 
 // ============================================================================
+// Source Table Configuration
+// ============================================================================
+
+/**
+ * Resolve the source table and date column for a data asset.
+ * Most assets query 'activities', but some (like job_order_count) query other tables.
+ */
+function getSourceConfig(asset: DataAsset): { table: string; dateColumn: string } {
+  const sourceTable = (asset.metadata as Record<string, unknown>)?.source_table as string | undefined;
+  switch (sourceTable) {
+    case 'job_orders':
+      return { table: 'job_orders', dateColumn: 'date_added' };
+    case 'submission_status_log':
+      return { table: 'submission_status_log', dateColumn: 'detected_at' };
+    case 'placements':
+      return { table: 'placements', dateColumn: 'placement_date' };
+    default:
+      return { table: 'activities', dateColumn: 'activity_date' };
+  }
+}
+
+// ============================================================================
 // Shared Consultant Filter Helper
 // ============================================================================
 
@@ -159,18 +181,19 @@ async function querySingleValue(
   params: DataAssetParams
 ): Promise<SingleValue> {
   const activityTypes = (asset.metadata as Record<string, unknown>)?.activity_types as string[] ?? [];
+  const { table, dateColumn } = getSourceConfig(asset);
 
   // Build the query
   let query = supabase
-    .from('activities')
+    .from(table)
     .select('id', { count: 'exact', head: false });
 
-  // Apply filters
-  if (activityTypes.length > 0) {
+  // Apply activity_type filter only for activities table
+  if (table === 'activities' && activityTypes.length > 0) {
     query = query.in('activity_type', activityTypes);
   }
 
-  query = applyDateRange(query, params.filters?.dateRange);
+  query = applyDateRange(query, params.filters?.dateRange, dateColumn);
   query = applyConsultantFilter(query, params.filters);
 
   const { count, error } = await query;
@@ -196,17 +219,17 @@ async function querySingleValue(
     prevStart.setDate(prevStart.getDate() - daysDiff);
 
     let prevQuery = supabase
-      .from('activities')
+      .from(table)
       .select('id', { count: 'exact', head: false });
 
-    if (activityTypes.length > 0) {
+    if (table === 'activities' && activityTypes.length > 0) {
       prevQuery = prevQuery.in('activity_type', activityTypes);
     }
 
     prevQuery = applyDateRange(prevQuery, {
       start: toLocalDateString(prevStart),
       end: toLocalDateString(prevEnd),
-    });
+    }, dateColumn);
     prevQuery = applyConsultantFilter(prevQuery, params.filters);
 
     const { count: prevCount } = await prevQuery;
@@ -236,19 +259,24 @@ async function queryCategorical(
   params: DataAssetParams
 ): Promise<Categorical> {
   const activityTypes = (asset.metadata as Record<string, unknown>)?.activity_types as string[] ?? [];
+  const { table, dateColumn } = getSourceConfig(asset);
 
-  // Select with activity_type + join to user_profiles for display names
-  // Including activity_type allows us to produce series data for stacked charts
+  // Determine the series breakdown column based on source table
+  const seriesColumn = table === 'job_orders' ? 'employment_type'
+    : table === 'placements' ? 'revenue_type'
+    : 'activity_type';
+
+  // Select with series column + join to user_profiles for display names
   let query = supabase
-    .from('activities')
-    .select('consultant_id, activity_type, user_profiles(display_name, first_name, last_name)');
+    .from(table)
+    .select(`consultant_id, ${seriesColumn}, user_profiles(display_name, first_name, last_name)`);
 
-  // Apply filters
-  if (activityTypes.length > 0) {
+  // Apply activity_type filter only for activities table
+  if (table === 'activities' && activityTypes.length > 0) {
     query = query.in('activity_type', activityTypes);
   }
 
-  query = applyDateRange(query, params.filters?.dateRange);
+  query = applyDateRange(query, params.filters?.dateRange, dateColumn);
   query = applyConsultantFilter(query, params.filters);
 
   const { data, error } = await query;
@@ -257,14 +285,14 @@ async function queryCategorical(
     throw new Error(`Query failed: ${error.message}`);
   }
 
-  // Group by consultant and activity type simultaneously
+  // Group by consultant and series column simultaneously
   const consultantNames = new Map<string, string>();
   const totals = new Map<string, number>();
   const seriesMap = new Map<string, Map<string, number>>();
 
   for (const row of data || []) {
     const consultantId = row.consultant_id;
-    const actType = row.activity_type;
+    const seriesValue = (row as Record<string, unknown>)[seriesColumn] as string | null;
     if (!consultantId) continue;
 
     // Resolve display name
@@ -283,14 +311,14 @@ async function queryCategorical(
 
     totals.set(consultantId, (totals.get(consultantId) || 0) + 1);
 
-    if (actType) {
-      if (!seriesMap.has(actType)) seriesMap.set(actType, new Map());
-      const typeMap = seriesMap.get(actType)!;
+    if (seriesValue) {
+      if (!seriesMap.has(seriesValue)) seriesMap.set(seriesValue, new Map());
+      const typeMap = seriesMap.get(seriesValue)!;
       typeMap.set(consultantId, (typeMap.get(consultantId) || 0) + 1);
     }
   }
 
-  // Top consultants by total activity
+  // Top consultants by total
   const topConsultants = Array.from(totals.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, params.limit || 10);
@@ -323,15 +351,16 @@ async function queryTimeSeries(
   params: DataAssetParams
 ): Promise<TimeSeries> {
   const activityTypes = (asset.metadata as Record<string, unknown>)?.activity_types as string[] ?? [];
+  const { table, dateColumn } = getSourceConfig(asset);
 
-  let query = supabase.from('activities').select('activity_date');
+  let query = supabase.from(table).select(dateColumn);
 
-  // Apply filters
-  if (activityTypes.length > 0) {
+  // Apply activity_type filter only for activities table
+  if (table === 'activities' && activityTypes.length > 0) {
     query = query.in('activity_type', activityTypes);
   }
 
-  query = applyDateRange(query, params.filters?.dateRange);
+  query = applyDateRange(query, params.filters?.dateRange, dateColumn);
   query = applyConsultantFilter(query, params.filters);
 
   const { data, error } = await query;
@@ -344,8 +373,12 @@ async function queryTimeSeries(
   const grouped = new Map<string, number>();
 
   for (const row of data || []) {
-    const date = row.activity_date;
-    grouped.set(date, (grouped.get(date) || 0) + 1);
+    // Extract date — for timestamptz columns, truncate to date only
+    const rawDate = (row as unknown as Record<string, unknown>)[dateColumn] as string;
+    const date = rawDate ? rawDate.substring(0, 10) : null;
+    if (date) {
+      grouped.set(date, (grouped.get(date) || 0) + 1);
+    }
   }
 
   // Convert to time series format
@@ -374,15 +407,16 @@ async function queryTabular(
   params: DataAssetParams
 ): Promise<Tabular> {
   const activityTypes = (asset.metadata as Record<string, unknown>)?.activity_types as string[] ?? [];
+  const { table, dateColumn } = getSourceConfig(asset);
 
-  let query = supabase.from('activities').select('*', { count: 'exact' });
+  let query = supabase.from(table).select('*', { count: 'exact' });
 
-  // Apply filters
-  if (activityTypes.length > 0) {
+  // Apply activity_type filter only for activities table
+  if (table === 'activities' && activityTypes.length > 0) {
     query = query.in('activity_type', activityTypes);
   }
 
-  query = applyDateRange(query, params.filters?.dateRange);
+  query = applyDateRange(query, params.filters?.dateRange, dateColumn);
   query = applyConsultantFilter(query, params.filters);
 
   // Apply pagination
@@ -396,14 +430,24 @@ async function queryTabular(
     throw new Error(`Query failed: ${error.message}`);
   }
 
+  // Build columns based on source table
+  const columns = table === 'job_orders'
+    ? [
+        { key: 'date_added', label: 'Date Added', type: 'date' as const, format: 'date' as const },
+        { key: 'title', label: 'Title', type: 'string' as const },
+        { key: 'employment_type', label: 'Type', type: 'string' as const },
+        { key: 'consultant_id', label: 'Consultant', type: 'string' as const },
+      ]
+    : [
+        { key: 'activity_date', label: 'Date', type: 'date' as const, format: 'date' as const },
+        { key: 'activity_type', label: 'Type', type: 'string' as const },
+        { key: 'consultant_id', label: 'Consultant', type: 'string' as const },
+        { key: 'notes', label: 'Notes', type: 'string' as const },
+      ];
+
   return {
     _shape: 'tabular',
-    columns: [
-      { key: 'activity_date', label: 'Date', type: 'date', format: 'date' },
-      { key: 'activity_type', label: 'Type', type: 'string' },
-      { key: 'consultant_id', label: 'Consultant', type: 'string' },
-      { key: 'notes', label: 'Notes', type: 'string' },
-    ],
+    columns,
     rows: data || [],
     totalRows: count || 0,
     pagination: {
