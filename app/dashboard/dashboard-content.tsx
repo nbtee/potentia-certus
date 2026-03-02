@@ -15,6 +15,9 @@ import {
   Coffee,
   TrendingUp,
   Briefcase,
+  Send,
+  UserCheck,
+  Star,
 } from 'lucide-react';
 import { useDateRange } from '@/lib/contexts/filter-context';
 
@@ -66,6 +69,30 @@ export function DashboardContent() {
           <KPICard
             assetKey="client_meeting_count"
             icon={Coffee}
+            colorScheme="orange"
+            dateRange={dateRange}
+          />
+        </WidgetErrorBoundary>
+        <WidgetErrorBoundary fallbackTitle="Submittals failed">
+          <KPICard
+            assetKey="submittal_count"
+            icon={Send}
+            colorScheme="teal"
+            dateRange={dateRange}
+          />
+        </WidgetErrorBoundary>
+        <WidgetErrorBoundary fallbackTitle="First Interviews failed">
+          <KPICard
+            assetKey="first_interview_count"
+            icon={UserCheck}
+            colorScheme="green"
+            dateRange={dateRange}
+          />
+        </WidgetErrorBoundary>
+        <WidgetErrorBoundary fallbackTitle="Strategic Referrals failed">
+          <KPICard
+            assetKey="strategic_referral_count"
+            icon={Star}
             colorScheme="orange"
             dateRange={dateRange}
           />

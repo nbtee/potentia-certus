@@ -182,6 +182,7 @@ async function querySingleValue(
   params: DataAssetParams
 ): Promise<SingleValue> {
   const activityTypes = (asset.metadata as Record<string, unknown>)?.activity_types as string[] ?? [];
+  const statusFilter = (asset.metadata as Record<string, unknown>)?.status_filter as string | string[] | undefined;
   const { table, dateColumn } = getSourceConfig(asset);
 
   // Build the query
@@ -192,6 +193,12 @@ async function querySingleValue(
   // Apply activity_type filter only for activities table
   if (table === 'activities' && activityTypes.length > 0) {
     query = query.in('activity_type', activityTypes);
+  }
+
+  // Apply status_to filter for submission_status_log
+  if (table === 'submission_status_log' && statusFilter) {
+    const statuses = Array.isArray(statusFilter) ? statusFilter : [statusFilter];
+    query = query.in('status_to', statuses);
   }
 
   query = applyDateRange(query, params.filters?.dateRange, dateColumn);
@@ -225,6 +232,11 @@ async function querySingleValue(
 
     if (table === 'activities' && activityTypes.length > 0) {
       prevQuery = prevQuery.in('activity_type', activityTypes);
+    }
+
+    if (table === 'submission_status_log' && statusFilter) {
+      const statuses = Array.isArray(statusFilter) ? statusFilter : [statusFilter];
+      prevQuery = prevQuery.in('status_to', statuses);
     }
 
     prevQuery = applyDateRange(prevQuery, {
