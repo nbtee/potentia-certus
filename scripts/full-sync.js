@@ -151,15 +151,30 @@ async function syncClientCorporations(pool) {
   const start = Date.now();
   console.log('\n[1] Syncing client_corporations...');
 
-  const result = await pool.request().query(
+  // Merge both sources: ClientCorpReport (primary) and TargetJobsDB (fills gaps)
+  const reportResult = await pool.request().query(
     'SELECT Id, Name FROM ClientCorpReport.ClientCorporations'
   );
+  const targetResult = await pool.request().query(
+    'SELECT id AS Id, name AS Name FROM TargetJobsDB.ClientCorporations'
+  );
 
-  const rows = result.recordset.map((r) => ({
-    bullhorn_id: r.Id,
-    name: r.Name || 'Unknown',
+  // Deduplicate by Id, preferring ClientCorpReport names
+  const byId = new Map();
+  for (const r of targetResult.recordset) {
+    byId.set(r.Id, r.Name || 'Unknown');
+  }
+  for (const r of reportResult.recordset) {
+    byId.set(r.Id, r.Name || 'Unknown');
+  }
+
+  const rows = Array.from(byId.entries()).map(([id, name]) => ({
+    bullhorn_id: id,
+    name,
     synced_at: new Date().toISOString(),
   }));
+
+  console.log(`  Sources: ${reportResult.recordset.length} from ClientCorpReport, ${targetResult.recordset.length} from TargetJobsDB → ${rows.length} merged`);
 
   const stats = await upsertBatch('client_corporations', rows, 'bullhorn_id');
   console.log(`  ${stats.inserted} upserted, ${stats.errors} errors (${elapsed(start)})`);
@@ -168,7 +183,7 @@ async function syncClientCorporations(pool) {
   const ccData = await fetchAll('client_corporations', 'id, bullhorn_id');
   ccData.forEach((r) => lookups.clientCorporations.set(r.bullhorn_id, r.id));
 
-  await logIngestionRun('full_sync', 'ClientCorpReport.ClientCorporations', 'client_corporations',
+  await logIngestionRun('full_sync', 'ClientCorpReport + TargetJobsDB.ClientCorporations', 'client_corporations',
     { processed: rows.length, inserted: stats.inserted, errors: stats.errors },
     stats.errors === 0 ? 'completed' : 'partial');
 
@@ -327,12 +342,12 @@ async function syncPlacements(pool) {
     }
 
     // For contract: Margin is GP per hour (or per day if SalaryUnit is Daily)
-    // For perm: fee is the placement fee, or Margin could represent the fee
+    // For perm: Margin is the actual fee amount (dollar value); fee is the fee percentage (do NOT use)
     let feeAmount = null;
     let gpPerHour = null;
 
     if (revenueType === 'permanent') {
-      feeAmount = r.fee || r.Margin || 0;
+      feeAmount = r.Margin || 0;
     } else {
       // For contract, Margin is GP; if SalaryUnit is Daily, convert to hourly (÷8)
       if (r.Margin) {
