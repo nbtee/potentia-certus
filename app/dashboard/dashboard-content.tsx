@@ -54,19 +54,11 @@ export function DashboardContent() {
             dateRange={dateRange}
           />
         </WidgetErrorBoundary>
-        <WidgetErrorBoundary fallbackTitle="BD Calls failed">
+        <WidgetErrorBoundary fallbackTitle="Client Calls failed">
           <KPICard
-            assetKey="bd_call_count"
+            assetKey="client_call_count"
             icon={TrendingUp}
             colorScheme="purple"
-            dateRange={dateRange}
-          />
-        </WidgetErrorBoundary>
-        <WidgetErrorBoundary fallbackTitle="AD Calls failed">
-          <KPICard
-            assetKey="ad_call_count"
-            icon={Phone}
-            colorScheme="teal"
             dateRange={dateRange}
           />
         </WidgetErrorBoundary>
