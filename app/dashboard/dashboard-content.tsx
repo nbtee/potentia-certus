@@ -4,7 +4,6 @@ import {
   KPICard,
   TimeSeriesChart,
   BarChart,
-  DonutChart,
   AnimatedLeaderboard,
   Heatmap,
   MultiLineChart,
@@ -125,28 +124,17 @@ export function DashboardContent() {
       {/* ================================================================ */}
       {/* Bar Charts + Donut Chart (categorical shape) */}
       {/* ================================================================ */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <WidgetErrorBoundary fallbackTitle="Top Performers chart failed">
-          <BarChart
-            assetKey="candidate_call_count"
-            title="Top Performers: Candidate Calls"
-            dimension="consultant"
-            orientation="vertical"
-            color="#00E5C0"
-            dateRange={dateRange}
-            limit={8}
-          />
-        </WidgetErrorBoundary>
-        <WidgetErrorBoundary fallbackTitle="Donut chart failed">
-          <DonutChart
-            assetKey="candidate_call_count"
-            title="Call Distribution by Consultant"
-            chartType="donut"
-            dateRange={dateRange}
-            limit={6}
-          />
-        </WidgetErrorBoundary>
-      </div>
+      <WidgetErrorBoundary fallbackTitle="Top Performers chart failed">
+        <BarChart
+          assetKey="candidate_call_count"
+          title="Top Performers: Candidate Calls"
+          dimension="consultant"
+          orientation="vertical"
+          color="#00E5C0"
+          dateRange={dateRange}
+          limit={8}
+        />
+      </WidgetErrorBoundary>
 
       {/* ================================================================ */}
       {/* Leaderboards (categorical + revenue) */}
