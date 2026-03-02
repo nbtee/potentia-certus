@@ -7,7 +7,6 @@ import {
   DonutChart,
   AnimatedLeaderboard,
   Heatmap,
-  StackedBarChart,
   MultiLineChart,
   RevenueLeaderboard,
   DeliveryPerformanceChart,
@@ -178,18 +177,6 @@ export function DashboardContent() {
           title="Delivery Activity Top Performers"
           dateRange={dateRange}
           limit={10}
-        />
-      </WidgetErrorBoundary>
-
-      {/* ================================================================ */}
-      {/* Stacked Bar (categorical shape) */}
-      {/* ================================================================ */}
-      <WidgetErrorBoundary fallbackTitle="Stacked Bar failed">
-        <StackedBarChart
-          assetKey="candidate_call_count"
-          title="Activity Breakdown by Consultant"
-          dateRange={dateRange}
-          limit={6}
         />
       </WidgetErrorBoundary>
 
