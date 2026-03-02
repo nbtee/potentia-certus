@@ -241,7 +241,7 @@ async function syncJobOrders(pool) {
     return {
       bullhorn_id: r.Id,
       title: r.Title || 'Untitled',
-      consultant_id: lookups.consultantsByNativeId.get(r.OwnerId) || null,
+      consultant_id: lookups.consultants.get(r.OwnerId) || null,
       client_corporation_id: lookups.clientCorporations.get(r.ClientCorporationId) || null,
       employment_type: empType,
       date_added: r.DateAdded ? new Date(r.DateAdded).toISOString() : null,
@@ -358,7 +358,7 @@ async function syncPlacements(pool) {
 
     return {
       bullhorn_id: r.Id,
-      consultant_id: lookups.consultantsByNativeId.get(r.OwnerId) || null,
+      consultant_id: lookups.consultants.get(r.OwnerId) || null,
       candidate_id: lookups.candidates.get(r.CandidateId) || null,
       job_order_id: lookups.jobOrders.get(r.JobOrderId) || null,
       revenue_type: revenueType,
