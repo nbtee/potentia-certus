@@ -100,6 +100,9 @@ export function calculateDateRange(preset: string): DateRange {
     case '30d':
       start.setDate(start.getDate() - 30);
       break;
+    case 'mtd':
+      start.setDate(1);
+      break;
     case '90d':
       start.setDate(start.getDate() - 90);
       break;
