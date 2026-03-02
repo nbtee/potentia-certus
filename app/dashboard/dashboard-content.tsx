@@ -7,6 +7,7 @@ import {
   MultiLineChart,
   RevenueLeaderboard,
   DeliveryPerformanceChart,
+  SalesPerformanceChart,
   WidgetErrorBoundary,
 } from '@/components/widgets';
 import {
@@ -126,6 +127,17 @@ export function DashboardContent() {
           />
         </WidgetErrorBoundary>
       </div>
+
+      {/* ================================================================ */}
+      {/* Sales Performance (horizontal stacked bar) */}
+      {/* ================================================================ */}
+      <WidgetErrorBoundary fallbackTitle="Sales Performance failed">
+        <SalesPerformanceChart
+          title="Sales Activity Top Performers"
+          dateRange={dateRange}
+          limit={10}
+        />
+      </WidgetErrorBoundary>
 
       {/* ================================================================ */}
       {/* Delivery Performance (horizontal stacked bar) */}
