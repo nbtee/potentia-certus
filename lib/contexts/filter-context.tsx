@@ -76,6 +76,24 @@ export function calculateDateRange(preset: string): DateRange {
   const start = new Date();
 
   switch (preset) {
+    case 'wtd': {
+      // Week-to-date: Monday of the current week through today
+      const dow = start.getDay(); // 0=Sun, 1=Mon, ...
+      const daysSinceMonday = dow === 0 ? 6 : dow - 1;
+      start.setDate(start.getDate() - daysSinceMonday);
+      break;
+    }
+    case 'last_week': {
+      // Last working week: Monday–Friday of the previous week
+      const dow2 = end.getDay();
+      const daysSinceMon = dow2 === 0 ? 6 : dow2 - 1;
+      // Monday of current week, then back 7 to get last Monday
+      start.setDate(start.getDate() - daysSinceMon - 7);
+      // End = that Friday (start + 4 days)
+      end.setTime(start.getTime());
+      end.setDate(end.getDate() + 4);
+      break;
+    }
     case '7d':
       start.setDate(start.getDate() - 7);
       break;

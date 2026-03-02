@@ -23,6 +23,8 @@ import { useFilters, calculateDateRange } from '@/lib/contexts/filter-context';
 import { ScopePicker } from '@/components/scope-picker';
 
 const dateRanges = [
+  { label: 'This Week', value: 'wtd' },
+  { label: 'Last Week', value: 'last_week' },
   { label: 'Last 7 days', value: '7d' },
   { label: 'Last 30 days', value: '30d' },
   { label: 'Last 90 days', value: '90d' },
