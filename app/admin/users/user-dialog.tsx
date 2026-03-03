@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/select';
 import { useInviteUser, useUpdateUser, useHierarchy } from '@/lib/admin/hooks';
 import type { UserProfile, OrgNode } from '@/lib/admin/types';
+import { toast } from 'sonner';
 
 const TITLE_OPTIONS = [
   { value: 'associate_consultant', label: 'Associate Consultant' },
@@ -79,26 +80,32 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
   async function handleSubmit() {
     const titleValue = title === 'none' ? null : (title as typeof TITLE_OPTIONS[number]['value']);
 
-    if (isEdit && user) {
-      await updateMutation.mutateAsync({
-        id: user.id,
-        first_name: firstName,
-        last_name: lastName,
-        role: role as UserProfile['role'],
-        title: titleValue,
-      });
-    } else {
-      const nodeId = hierarchyNodeId === 'none' ? null : hierarchyNodeId;
-      await inviteMutation.mutateAsync({
-        email,
-        first_name: firstName,
-        last_name: lastName,
-        role: role as UserProfile['role'],
-        title: titleValue,
-        hierarchy_node_id: nodeId,
-      });
+    try {
+      if (isEdit && user) {
+        await updateMutation.mutateAsync({
+          id: user.id,
+          first_name: firstName,
+          last_name: lastName,
+          role: role as UserProfile['role'],
+          title: titleValue,
+        });
+        toast.success('User updated successfully');
+      } else {
+        const nodeId = hierarchyNodeId === 'none' ? null : hierarchyNodeId;
+        await inviteMutation.mutateAsync({
+          email,
+          first_name: firstName,
+          last_name: lastName,
+          role: role as UserProfile['role'],
+          title: titleValue,
+          hierarchy_node_id: nodeId,
+        });
+        toast.success(`Invite sent to ${email}`);
+      }
+      onOpenChange(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
     }
-    onOpenChange(false);
   }
 
   return (
