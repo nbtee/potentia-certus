@@ -81,6 +81,7 @@ export function useUsers() {
       if (result.error) throw new Error(result.error);
       return result.data;
     },
+    staleTime: 60_000,
   });
 }
 
@@ -160,6 +161,7 @@ export function useHierarchy() {
       if (result.error) throw new Error(result.error);
       return result.data;
     },
+    staleTime: 60_000,
   });
 }
 
@@ -210,6 +212,7 @@ export function useBusinessRules() {
       if (result.error) throw new Error(result.error);
       return result.data;
     },
+    staleTime: 60_000,
   });
 }
 
@@ -260,6 +263,7 @@ export function useMonthlyTargets(monthStart: string) {
       if (result.error) throw new Error(result.error);
       return result.data;
     },
+    staleTime: 60_000,
   });
 }
 
@@ -331,6 +335,7 @@ export function useAdminDataAssets() {
       if (result.error) throw new Error(result.error);
       return result.data;
     },
+    staleTime: 60_000,
   });
 }
 
@@ -370,6 +375,7 @@ export function useContextDocuments() {
       if (result.error) throw new Error(result.error);
       return result.data;
     },
+    staleTime: 60_000,
   });
 }
 
@@ -397,6 +403,7 @@ export function useUnmatchedTerms() {
       if (result.error) throw new Error(result.error);
       return result.data;
     },
+    staleTime: 60_000,
   });
 }
 
@@ -437,6 +444,7 @@ export function useIngestionStatus() {
       if (result.error) throw new Error(result.error);
       return result.data;
     },
+    staleTime: 15_000,
     refetchInterval: 30000, // Poll every 30s
   });
 }
@@ -449,6 +457,7 @@ export function useIngestionRuns() {
       if (result.error) throw new Error(result.error);
       return result.data;
     },
+    staleTime: 60_000,
   });
 }
 
@@ -471,5 +480,6 @@ export function useAuditLogs(filters?: {
       if (result.error) throw new Error(result.error);
       return result.data;
     },
+    staleTime: 60_000,
   });
 }

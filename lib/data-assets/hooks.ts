@@ -31,6 +31,7 @@ export function useDataAssets() {
 
       return data || [];
     },
+    staleTime: 60_000,
   });
 }
 
@@ -60,6 +61,7 @@ export function useDataAsset(assetKey: string) {
       return data;
     },
     enabled: !!assetKey,
+    staleTime: 60_000,
   });
 }
 
@@ -111,5 +113,6 @@ export function useExecuteDataAsset(
       };
     },
     enabled: enabled && !!assetKey,
+    staleTime: 60_000,
   });
 }

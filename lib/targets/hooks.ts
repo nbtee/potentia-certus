@@ -16,6 +16,7 @@ export function useMyTargets(monthStart: string) {
       if (result.error) throw new Error(result.error);
       return result.data;
     },
+    staleTime: 60_000,
   });
 }
 
@@ -27,6 +28,7 @@ export function useMyPerformance(monthStart: string, timeWindow: TimeWindow = '6
       if (result.error) throw new Error(result.error);
       return result.data;
     },
+    staleTime: 60_000,
   });
 }
 

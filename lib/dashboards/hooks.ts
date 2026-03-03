@@ -40,6 +40,7 @@ export function useDashboards() {
       if (result.error) throw new Error(result.error);
       return result.data;
     },
+    staleTime: 60_000,
   });
 }
 
@@ -52,6 +53,7 @@ export function useDashboard(id: string) {
       return result.data;
     },
     enabled: !!id,
+    staleTime: 60_000,
   });
 }
 
