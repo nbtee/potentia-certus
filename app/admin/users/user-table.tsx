@@ -20,11 +20,11 @@ import {
   useSendPasswordReset,
 } from '@/lib/admin/hooks';
 import { UserDialog } from './user-dialog';
-import { CSVImportDialog } from './csv-import-dialog';
+import { BullhornSyncDialog } from './bullhorn-sync-dialog';
 import type { UserProfile } from '@/lib/admin/types';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { MoreHorizontal, Plus, UserX, UserCheck, Pencil, Upload, Mail, KeyRound } from 'lucide-react';
+import { MoreHorizontal, Plus, UserX, UserCheck, Pencil, RefreshCw, Mail, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 
 const roleColors: Record<string, string> = {
@@ -120,7 +120,7 @@ export function UserTable() {
   const sendPasswordResetMutation = useSendPasswordReset();
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [csvDialogOpen, setCsvDialogOpen] = useState(false);
+  const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [hideDeactivated, setHideDeactivated] = useState(true);
 
@@ -257,9 +257,9 @@ export function UserTable() {
   return (
     <div>
       <AdminPageHeader title="Users" description="Manage user accounts and roles.">
-        <Button variant="outline" onClick={() => setCsvDialogOpen(true)}>
-          <Upload className="mr-2 h-4 w-4" />
-          Import CSV
+        <Button variant="outline" onClick={() => setSyncDialogOpen(true)}>
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Sync from Bullhorn
         </Button>
         <Button
           onClick={() => {
@@ -297,9 +297,9 @@ export function UserTable() {
         user={editingUser}
       />
 
-      <CSVImportDialog
-        open={csvDialogOpen}
-        onOpenChange={setCsvDialogOpen}
+      <BullhornSyncDialog
+        open={syncDialogOpen}
+        onOpenChange={setSyncDialogOpen}
       />
     </div>
   );
