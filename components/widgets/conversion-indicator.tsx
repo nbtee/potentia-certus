@@ -6,6 +6,7 @@ import { formatValue } from '@/lib/utils/format';
 import { motion } from 'framer-motion';
 import { ArrowRight, TrendingUp, TrendingDown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { WidgetInfoButton } from './widget-info-button';
 
 interface ConversionIndicatorProps {
   assetKey?: string;
@@ -18,6 +19,7 @@ interface ConversionIndicatorProps {
   previousValue?: number;
   dateRange?: { start: string; end: string };
   colorScheme?: 'teal' | 'green' | 'purple' | 'orange';
+  description?: string;
 }
 
 const colorSchemes = {
@@ -56,6 +58,7 @@ export function ConversionIndicator({
   previousValue,
   dateRange,
   colorScheme = 'teal',
+  description,
 }: ConversionIndicatorProps) {
   const { data, isLoading, error } = useWidgetData({
     assetKey: assetKey || '__noop__',
@@ -116,7 +119,10 @@ export function ConversionIndicator({
       animate={{ opacity: 1, scale: 1 }}
       className={`rounded-xl border ${colors.border} ${colors.bg} p-5 shadow-sm transition-shadow hover:shadow-md`}
     >
-      <div className="mb-3 text-sm font-medium text-gray-600">{title}</div>
+      <div className="mb-3 flex items-center gap-1.5 text-sm font-medium text-gray-600">
+        {title}
+        {description && <WidgetInfoButton description={description} />}
+      </div>
 
       <div className="flex items-center gap-3">
         <span className="text-xs text-gray-500">{fromLabel}</span>

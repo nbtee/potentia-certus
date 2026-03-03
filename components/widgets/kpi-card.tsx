@@ -14,6 +14,7 @@ import { useTargetForAsset } from '@/lib/targets/hooks';
 import { formatValue } from '@/lib/utils/format';
 import { motion } from 'framer-motion';
 import { ArrowUp, ArrowDown, Minus, Maximize2, type LucideIcon } from 'lucide-react';
+import { WidgetInfoButton } from './widget-info-button';
 
 export interface KPICardProps {
   assetKey: string;
@@ -24,6 +25,7 @@ export interface KPICardProps {
     end: string;
   };
   consultantId?: string;
+  description?: string;
 }
 
 const colorSchemes = {
@@ -63,6 +65,7 @@ export function KPICard({
   colorScheme = 'teal',
   dateRange,
   consultantId,
+  description,
 }: KPICardProps) {
   const { openDrillDown } = useDrillDown();
   const { targetValue } = useTargetForAsset(assetKey, dateRange);
@@ -131,6 +134,13 @@ export function KPICard({
       onClick={handleClick}
       className={`group relative cursor-pointer overflow-hidden rounded-xl border ${colors.border} bg-gradient-to-br ${colors.gradient} p-6 shadow-sm backdrop-blur-sm transition-shadow hover:shadow-md`}
     >
+      {/* Info button */}
+      {description && (
+        <div className="absolute right-3 top-3 z-[5]">
+          <WidgetInfoButton description={description} />
+        </div>
+      )}
+
       {/* Icon */}
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}

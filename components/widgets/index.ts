@@ -15,3 +15,4 @@ export { RevenueLeaderboard } from './revenue-leaderboard';
 export { DeliveryPerformanceChart } from './delivery-performance-chart';
 export { SalesPerformanceChart } from './sales-performance-chart';
 export { WidgetErrorBoundary } from './widget-error-boundary';
+export { WidgetInfoButton } from './widget-info-button';

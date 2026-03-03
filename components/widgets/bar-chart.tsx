@@ -17,6 +17,7 @@ import {
 } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle } from 'lucide-react';
+import { WidgetInfoButton } from './widget-info-button';
 
 // ============================================================================
 // Types
@@ -32,6 +33,7 @@ interface BarChartProps {
   limit?: number; // Top N items to show
   showValues?: boolean; // Show value labels on bars
   height?: number;
+  description?: string;
 }
 
 // ============================================================================
@@ -59,6 +61,7 @@ export function BarChart({
   limit = 10,
   showValues = false,
   height = 300,
+  description,
 }: BarChartProps) {
   const { data, isLoading, error } = useWidgetData({
     assetKey,
@@ -160,7 +163,10 @@ export function BarChart({
     >
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+        <div className="flex items-center gap-1.5">
+          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+          {description && <WidgetInfoButton description={description} />}
+        </div>
         <span className="text-xs text-gray-500">
           Top {categories.length}
         </span>

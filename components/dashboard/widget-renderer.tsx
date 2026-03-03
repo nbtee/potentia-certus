@@ -6,6 +6,7 @@ import type { DateRange } from '@/lib/contexts/filter-context';
 import { WIDGET_COMPONENTS, buildWidgetProps } from '@/lib/widgets/widget-resolver';
 import { WidgetErrorBoundary } from '@/components/widgets/widget-error-boundary';
 import { X } from 'lucide-react';
+import { WidgetInfoButton } from '@/components/widgets/widget-info-button';
 
 interface WidgetRendererProps {
   widget: DashboardWidget;
@@ -43,6 +44,12 @@ export const WidgetRenderer = memo(function WidgetRenderer({
       >
         <Component {...props} />
       </WidgetErrorBoundary>
+
+      {widget.data_asset?.description && (
+        <div className="absolute right-2 top-2 z-[5]">
+          <WidgetInfoButton description={widget.data_asset.description} />
+        </div>
+      )}
 
       {isEditing && onRemove && (
         <button

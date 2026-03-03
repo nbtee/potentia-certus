@@ -17,6 +17,7 @@ import {
 } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle } from 'lucide-react';
+import { WidgetInfoButton } from './widget-info-button';
 
 interface StackedBarChartProps {
   assetKey: string;
@@ -24,6 +25,7 @@ interface StackedBarChartProps {
   dateRange?: DateRange;
   limit?: number;
   height?: number;
+  description?: string;
 }
 
 const STACK_COLORS = [
@@ -37,6 +39,7 @@ export function StackedBarChart({
   dateRange,
   limit = 8,
   height = 350,
+  description,
 }: StackedBarChartProps) {
   const { data: response, isLoading, error } = useWidgetData({
     assetKey,
@@ -106,7 +109,10 @@ export function StackedBarChart({
       className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
     >
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+        <div className="flex items-center gap-1.5">
+          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+          {description && <WidgetInfoButton description={description} />}
+        </div>
         <span className="text-xs text-gray-500">
           {seriesNames.length} activity types
         </span>

@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle } from 'lucide-react';
+import { WidgetInfoButton } from './widget-info-button';
 
 // Lazy-load the Nivo heatmap to avoid +30KB bundle hit on initial load
 const HeatmapInner = dynamic(
@@ -22,6 +23,7 @@ interface HeatmapProps {
   title: string;
   dateRange?: DateRange;
   height?: number;
+  description?: string;
 }
 
 export function Heatmap({
@@ -29,6 +31,7 @@ export function Heatmap({
   title,
   dateRange,
   height = 400,
+  description,
 }: HeatmapProps) {
   const { data, isLoading, error } = useWidgetData({
     assetKey,
@@ -100,7 +103,10 @@ export function Heatmap({
       className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
     >
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+        <div className="flex items-center gap-1.5">
+          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+          {description && <WidgetInfoButton description={description} />}
+        </div>
         <span className="text-xs text-gray-500">
           {matrixData.rows.length} x {matrixData.columns.length}
         </span>

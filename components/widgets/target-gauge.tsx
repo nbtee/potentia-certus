@@ -6,6 +6,7 @@ import { formatValue } from '@/lib/utils/format';
 import { motion } from 'framer-motion';
 import { RadialBarChart, RadialBar, ResponsiveContainer } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
+import { WidgetInfoButton } from './widget-info-button';
 
 interface TargetGaugeProps {
   assetKey: string;
@@ -14,6 +15,7 @@ interface TargetGaugeProps {
   targetLabel?: string;
   dateRange?: { start: string; end: string };
   consultantId?: string;
+  description?: string;
 }
 
 function getGaugeColor(percentage: number): string {
@@ -37,6 +39,7 @@ export function TargetGauge({
   targetLabel = 'Target',
   dateRange,
   consultantId,
+  description,
 }: TargetGaugeProps) {
   const { data, isLoading, error } = useWidgetData({
     assetKey,
@@ -86,9 +89,12 @@ export function TargetGauge({
       animate={{ opacity: 1, y: 0 }}
       className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
     >
-      <h3 className="mb-2 text-center text-sm font-medium text-gray-600">
-        {title}
-      </h3>
+      <div className="mb-2 flex items-center justify-center gap-1.5">
+        <h3 className="text-center text-sm font-medium text-gray-600">
+          {title}
+        </h3>
+        {description && <WidgetInfoButton description={description} />}
+      </div>
 
       <div className="relative mx-auto" style={{ width: 180, height: 140 }}>
         <ResponsiveContainer width="100%" height="100%">

@@ -18,6 +18,7 @@ import {
 } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, AlertTriangle } from 'lucide-react';
+import { WidgetInfoButton } from './widget-info-button';
 import { format, parseISO } from 'date-fns';
 
 export interface LineConfig {
@@ -33,6 +34,7 @@ interface MultiLineChartProps {
   dateRange?: DateRange;
   dualAxis?: boolean;
   height?: number;
+  description?: string;
 }
 
 export function MultiLineChart({
@@ -41,6 +43,7 @@ export function MultiLineChart({
   dateRange,
   dualAxis = false,
   height = 350,
+  description,
 }: MultiLineChartProps) {
   const { consultantIds, isLoading: scopeLoading } = useResolvedScope();
   const sortedIds = consultantIds ? [...consultantIds].sort() : null;
@@ -178,7 +181,10 @@ export function MultiLineChart({
       className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
     >
       <div className="mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+        <div className="flex items-center gap-1.5">
+          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+          {description && <WidgetInfoButton description={description} />}
+        </div>
         {/* Summary stats row */}
         <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1">
           {lines.map((line) => {

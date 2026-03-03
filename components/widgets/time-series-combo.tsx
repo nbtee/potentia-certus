@@ -19,6 +19,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { WidgetInfoButton } from './widget-info-button';
 
 interface TimeSeriesComboProps {
   assetKey: string;
@@ -29,6 +30,7 @@ interface TimeSeriesComboProps {
   lineColor?: string;
   movingAverageDays?: number;
   height?: number;
+  description?: string;
 }
 
 function computeMovingAverage(
@@ -54,6 +56,7 @@ export function TimeSeriesCombo({
   lineColor = '#ef4444',
   movingAverageDays = 7,
   height = 300,
+  description,
 }: TimeSeriesComboProps) {
   const { data, isLoading, error } = useWidgetData({
     assetKey,
@@ -135,7 +138,10 @@ export function TimeSeriesCombo({
     >
       <div className="mb-4 flex items-start justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+            {description && <WidgetInfoButton description={description} />}
+          </div>
           <p className="mt-1 text-sm text-gray-500">
             Total: {formatValue(total, timeSeriesData.format)} | {movingAverageDays}-day
             moving average overlay

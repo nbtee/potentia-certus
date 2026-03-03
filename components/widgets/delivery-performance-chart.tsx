@@ -18,6 +18,7 @@ import {
 } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle } from 'lucide-react';
+import { WidgetInfoButton } from './widget-info-button';
 
 // ============================================================================
 // Types & Constants
@@ -211,6 +212,7 @@ interface DeliveryPerformanceChartProps {
   dateRange?: DateRange;
   limit?: number;
   height?: number;
+  description?: string;
 }
 
 export function DeliveryPerformanceChart({
@@ -218,6 +220,7 @@ export function DeliveryPerformanceChart({
   dateRange,
   limit = 10,
   height = 400,
+  description,
 }: DeliveryPerformanceChartProps) {
   const { data, isLoading, error } = useDeliveryPerformance(dateRange, limit);
 
@@ -277,7 +280,10 @@ export function DeliveryPerformanceChart({
       className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
     >
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+        <div className="flex items-center gap-1.5">
+          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+          {description && <WidgetInfoButton description={description} />}
+        </div>
         <span className="text-xs text-gray-500">
           Top {data.length} consultants
         </span>

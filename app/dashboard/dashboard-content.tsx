@@ -9,6 +9,7 @@ import {
   SalesPerformanceChart,
   WidgetErrorBoundary,
 } from '@/components/widgets';
+import { useAssetDescriptions } from '@/lib/data-assets/use-asset-descriptions';
 import {
   Phone,
   Users,
@@ -25,6 +26,7 @@ import { useDateRange } from '@/lib/contexts/filter-context';
 export function DashboardContent() {
   // Get date range from filter context — updates automatically when filters change
   const dateRange = useDateRange();
+  const descriptions = useAssetDescriptions();
 
   return (
     <div className="space-y-6">
@@ -49,6 +51,7 @@ export function DashboardContent() {
             icon={TrendingUp}
             colorScheme="purple"
             dateRange={dateRange}
+            description={descriptions.get('client_call_count')}
           />
         </WidgetErrorBoundary>
         <WidgetErrorBoundary fallbackTitle="Client Meetings failed">
@@ -57,6 +60,7 @@ export function DashboardContent() {
             icon={Coffee}
             colorScheme="orange"
             dateRange={dateRange}
+            description={descriptions.get('client_meeting_count')}
           />
         </WidgetErrorBoundary>
         <WidgetErrorBoundary fallbackTitle="New Jobs failed">
@@ -65,6 +69,7 @@ export function DashboardContent() {
             icon={Briefcase}
             colorScheme="purple"
             dateRange={dateRange}
+            description={descriptions.get('job_order_count')}
           />
         </WidgetErrorBoundary>
         {/* Row 2: Delivery activities */}
@@ -74,6 +79,7 @@ export function DashboardContent() {
             icon={Phone}
             colorScheme="teal"
             dateRange={dateRange}
+            description={descriptions.get('candidate_call_count')}
           />
         </WidgetErrorBoundary>
         <WidgetErrorBoundary fallbackTitle="Candidate Meetings failed">
@@ -82,6 +88,7 @@ export function DashboardContent() {
             icon={Users}
             colorScheme="green"
             dateRange={dateRange}
+            description={descriptions.get('candidate_meeting_count')}
           />
         </WidgetErrorBoundary>
         <WidgetErrorBoundary fallbackTitle="Submittals failed">
@@ -90,6 +97,7 @@ export function DashboardContent() {
             icon={Send}
             colorScheme="teal"
             dateRange={dateRange}
+            description={descriptions.get('submittal_count')}
           />
         </WidgetErrorBoundary>
         {/* Row 3: Outcomes */}
@@ -99,6 +107,7 @@ export function DashboardContent() {
             icon={UserCheck}
             colorScheme="green"
             dateRange={dateRange}
+            description={descriptions.get('first_interview_count')}
           />
         </WidgetErrorBoundary>
         <WidgetErrorBoundary fallbackTitle="Strategic Referrals failed">
@@ -107,6 +116,7 @@ export function DashboardContent() {
             icon={Star}
             colorScheme="orange"
             dateRange={dateRange}
+            description={descriptions.get('strategic_referral_count')}
           />
         </WidgetErrorBoundary>
         <WidgetErrorBoundary fallbackTitle="Placements failed">
@@ -115,6 +125,7 @@ export function DashboardContent() {
             icon={Award}
             colorScheme="teal"
             dateRange={dateRange}
+            description={descriptions.get('placement_count')}
           />
         </WidgetErrorBoundary>
       </div>
@@ -134,6 +145,7 @@ export function DashboardContent() {
           dualAxis
           dateRange={dateRange}
           height={400}
+          description="Compares leading sales activities (BD calls, client meetings) against lagging outcomes (new jobs, placements) over time. The left axis shows activity volume, the right axis shows outcomes. Look for activity trends that precede outcome changes by 2-4 weeks."
         />
       </WidgetErrorBoundary>
 
@@ -145,6 +157,7 @@ export function DashboardContent() {
           title="Revenue Leaderboard"
           dateRange={dateRange}
           limit={10}
+          description="Ranks consultants by total revenue from placements in the selected period. Permanent placements use the fee amount; contract placements use gross profit per hour multiplied by estimated working hours. Click a consultant to see their individual placement details."
         />
       </WidgetErrorBoundary>
 
@@ -156,6 +169,7 @@ export function DashboardContent() {
           title="Sales Activity Top Performers"
           dateRange={dateRange}
           limit={10}
+          description="Shows the top consultants by total client-facing sales activity. Stacked bars break down BD calls, AD/AM calls, and client meetings. Higher totals indicate stronger business development effort. Compare bar composition to see whether a consultant leans toward phone or in-person outreach."
         />
       </WidgetErrorBoundary>
 
@@ -167,6 +181,7 @@ export function DashboardContent() {
           title="Delivery Activity Top Performers"
           dateRange={dateRange}
           limit={10}
+          description="Shows the top consultants by total candidate-facing delivery activity. Stacked bars break down candidate calls, candidate meetings, submittals, interview feedback, and reference checks. Higher totals indicate stronger delivery effort across the recruitment funnel."
         />
       </WidgetErrorBoundary>
 
@@ -179,6 +194,7 @@ export function DashboardContent() {
           title="Activity Heatmap: Consultants vs Activity Types"
           dateRange={dateRange}
           height={400}
+          description={descriptions.get('activity_heatmap')}
         />
       </WidgetErrorBoundary>
 

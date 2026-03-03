@@ -9,6 +9,7 @@ import type { DateRange } from '@/lib/contexts/filter-context';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, Trophy, Medal, Award, ChevronDown } from 'lucide-react';
+import { WidgetInfoButton } from './widget-info-button';
 
 // ============================================================================
 // Types
@@ -207,12 +208,14 @@ interface RevenueLeaderboardProps {
   title: string;
   dateRange?: DateRange;
   limit?: number;
+  description?: string;
 }
 
 export function RevenueLeaderboard({
   title,
   dateRange,
   limit = 10,
+  description,
 }: RevenueLeaderboardProps) {
   const { consultants, isLoading, error } = useRevenueLeaderboard(dateRange, limit);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -280,7 +283,10 @@ export function RevenueLeaderboard({
       className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
     >
       <div className="mb-5 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+        <div className="flex items-center gap-1.5">
+          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+          {description && <WidgetInfoButton description={description} />}
+        </div>
         <span className="text-xs text-gray-500">
           Top {consultants.length}
         </span>

@@ -85,7 +85,7 @@ export interface DashboardWidget {
   created_at: string;
   updated_at: string;
   // Joined fields
-  data_asset?: Pick<DataAsset, 'asset_key' | 'display_name' | 'output_shapes' | 'category'>;
+  data_asset?: Pick<DataAsset, 'asset_key' | 'display_name' | 'description' | 'output_shapes' | 'category'>;
 }
 
 export interface DashboardWithWidgets extends Dashboard {

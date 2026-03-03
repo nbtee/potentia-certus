@@ -112,6 +112,7 @@ export async function getDashboardWithWidgets(
         data_assets:data_asset_id (
           asset_key,
           display_name,
+          description,
           output_shapes,
           category
         )

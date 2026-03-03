@@ -15,6 +15,7 @@ import {
 } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle } from 'lucide-react';
+import { WidgetInfoButton } from './widget-info-button';
 
 interface DonutChartProps {
   assetKey: string;
@@ -24,6 +25,7 @@ interface DonutChartProps {
   dimension?: string;
   limit?: number;
   height?: number;
+  description?: string;
 }
 
 const COLORS = [
@@ -39,6 +41,7 @@ export function DonutChart({
   dimension = 'consultant',
   limit = 8,
   height = 300,
+  description,
 }: DonutChartProps) {
   const { data, isLoading, error } = useWidgetData({
     assetKey,
@@ -121,7 +124,10 @@ export function DonutChart({
       className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
     >
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+        <div className="flex items-center gap-1.5">
+          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+          {description && <WidgetInfoButton description={description} />}
+        </div>
         <span className="text-sm text-gray-500">
           Total: {formatValue(total, categoryData.format)}
         </span>

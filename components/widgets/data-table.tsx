@@ -32,6 +32,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { WidgetInfoButton } from './widget-info-button';
 
 interface DataTableProps {
   assetKey: string;
@@ -39,6 +40,7 @@ interface DataTableProps {
   dateRange?: DateRange;
   consultantId?: string;
   pageSize?: number;
+  description?: string;
 }
 
 function formatCellValue(
@@ -67,6 +69,7 @@ export function DataTable({
   dateRange,
   consultantId,
   pageSize = 20,
+  description,
 }: DataTableProps) {
   const [page, setPage] = useState(1);
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -131,6 +134,7 @@ export function DataTable({
     <>
       <DataTableInner
         title={title}
+        description={description}
         tabularData={tabularData}
         sorting={sorting}
         setSorting={setSorting}
@@ -167,6 +171,7 @@ export function DataTable({
 
 function DataTableInner({
   title,
+  description,
   tabularData,
   sorting,
   setSorting,
@@ -175,6 +180,7 @@ function DataTableInner({
   onRowClick,
 }: {
   title: string;
+  description?: string;
   tabularData: Tabular<Record<string, unknown>>;
   sorting: SortingState;
   setSorting: OnChangeFn<SortingState>;
@@ -219,7 +225,10 @@ function DataTableInner({
       className="rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
     >
       <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+        <div className="flex items-center gap-1.5">
+          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+          {description && <WidgetInfoButton description={description} />}
+        </div>
         {tabularData.totalRows !== undefined && (
           <span className="text-sm text-gray-500">
             {tabularData.totalRows.toLocaleString()} records

@@ -7,6 +7,7 @@ import type { DateRange } from '@/lib/contexts/filter-context';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, Trophy, Medal, Award } from 'lucide-react';
+import { WidgetInfoButton } from './widget-info-button';
 
 interface AnimatedLeaderboardProps {
   assetKey: string;
@@ -14,6 +15,7 @@ interface AnimatedLeaderboardProps {
   dateRange?: DateRange;
   dimension?: string;
   limit?: number;
+  description?: string;
 }
 
 const rankIcons = [
@@ -28,6 +30,7 @@ export function AnimatedLeaderboard({
   dateRange,
   dimension = 'consultant',
   limit = 10,
+  description,
 }: AnimatedLeaderboardProps) {
   const { data, isLoading, error } = useWidgetData({
     assetKey,
@@ -107,7 +110,10 @@ export function AnimatedLeaderboard({
       className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
     >
       <div className="mb-5 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+        <div className="flex items-center gap-1.5">
+          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+          {description && <WidgetInfoButton description={description} />}
+        </div>
         <span className="text-xs text-gray-500">
           Top {categories.length}
         </span>

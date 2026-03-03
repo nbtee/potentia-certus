@@ -23,6 +23,7 @@ import {
   Legend,
 } from 'recharts';
 import { format, parseISO } from 'date-fns';
+import { WidgetInfoButton } from './widget-info-button';
 
 export interface TimeSeriesChartProps {
   assetKey: string;
@@ -35,6 +36,7 @@ export interface TimeSeriesChartProps {
   };
   consultantId?: string;
   height?: number;
+  description?: string;
 }
 
 export function TimeSeriesChart({
@@ -45,6 +47,7 @@ export function TimeSeriesChart({
   dateRange,
   consultantId,
   height = 300,
+  description,
 }: TimeSeriesChartProps) {
   const { data, isLoading, error } = useWidgetData({
     assetKey,
@@ -105,7 +108,10 @@ export function TimeSeriesChart({
       {/* Header */}
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+            {description && <WidgetInfoButton description={description} />}
+          </div>
           <div className="mt-2 flex items-center gap-4 text-sm text-gray-600">
             <div>
               <span className="font-medium">Total:</span>{' '}
