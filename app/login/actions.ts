@@ -51,6 +51,34 @@ export async function login(
   redirect('/dashboard');
 }
 
+export async function forgotPassword(
+  _prevState: { error?: string; success?: boolean } | null,
+  formData: FormData
+): Promise<{ error?: string; success?: boolean }> {
+  const email = formData.get('email');
+
+  const parsed = z.string().email('Please enter a valid email address').safeParse(email);
+  if (!parsed.success) {
+    return { error: parsed.error.errors[0].message };
+  }
+
+  const supabase = await createClient();
+
+  const baseUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    'http://localhost:3001';
+
+  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
+    redirectTo: `${baseUrl}/auth/confirm?next=/set-password`,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return { success: true };
+}
+
 export async function logout() {
   const supabase = await createClient();
 
