@@ -75,6 +75,8 @@ function getSourceConfig(asset: DataAsset): { table: string; dateColumn: string 
       return { table: 'submission_status_log', dateColumn: 'detected_at' };
     case 'placements':
       return { table: 'placements', dateColumn: 'placement_date' };
+    case 'strategic_referrals':
+      return { table: 'strategic_referrals', dateColumn: 'referral_date' };
     default:
       return { table: 'activities', dateColumn: 'activity_date' };
   }
@@ -788,6 +790,12 @@ export async function queryDrillDown(params: {
         user_profiles(display_name)
       `;
       break;
+    case 'strategic_referrals':
+      selectClause = `
+        id, referral_date,
+        user_profiles(display_name)
+      `;
+      break;
     default:
       selectClause = '*';
   }
@@ -799,6 +807,13 @@ export async function queryDrillDown(params: {
   // Apply activity_type filter for activities table
   if (table === 'activities' && activityTypes.length > 0) {
     query = query.in('activity_type', activityTypes);
+  }
+
+  // Apply status_filter for submission_status_log
+  const statusFilter = (typedAsset.metadata as Record<string, unknown>)?.status_filter as string | string[] | undefined;
+  if (table === 'submission_status_log' && statusFilter) {
+    const statuses = Array.isArray(statusFilter) ? statusFilter : [statusFilter];
+    query = query.in('status_to', statuses);
   }
 
   query = applyDateRange(query, params.filters?.dateRange, dateColumn);
