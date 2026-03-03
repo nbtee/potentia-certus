@@ -15,11 +15,11 @@ export interface CategoryPerformance {
   targetKey: string;
   label: string;
   unit: 'currency' | 'count';
-  format?: 'percentage';
+  format?: 'percentage' | 'days';
   actual: number;
   target: number | null;
   percentage: number | null; // null when no target set
-  metadata?: { numerator: number; denominator: number };
+  metadata?: { numerator?: number; denominator?: number; jobCount?: number };
 }
 
 export interface MonthPerformance {

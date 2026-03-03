@@ -12,6 +12,7 @@ import {
   Star,
   Percent,
   CalendarCheck,
+  Clock,
 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MonthSelector } from '@/app/admin/targets/month-selector';
@@ -31,10 +32,12 @@ const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>
   first_interviews: CalendarCheck,
   sub_to_interview_rate: Percent,
   interview_to_placement_rate: Percent,
+  avg_time_to_submittal: Clock,
 };
 
-function formatActual(value: number, unit: 'currency' | 'count', format?: 'percentage'): string {
+function formatActual(value: number, unit: 'currency' | 'count', format?: 'percentage' | 'days'): string {
   if (format === 'percentage') return `${value.toFixed(1)}%`;
+  if (format === 'days') return `${value.toFixed(1)} days`;
   if (unit === 'currency') {
     return value >= 1000
       ? `$${(value / 1000).toFixed(value % 1000 === 0 ? 0 : 1)}k`
@@ -91,8 +94,8 @@ const STATUS_STYLES: Record<StatusColor, { icon: string; bar: string; text: stri
 
 function PerformanceCard({ cat }: { cat: CategoryPerformance }) {
   const Icon = CATEGORY_ICONS[cat.targetKey] ?? Star;
-  const isConversionRate = cat.format === 'percentage';
-  const color = isConversionRate ? 'gray' as StatusColor : getStatusColor(cat.percentage);
+  const isDerivedMetric = cat.format === 'percentage' || cat.format === 'days';
+  const color = isDerivedMetric ? 'gray' as StatusColor : getStatusColor(cat.percentage);
   const styles = STATUS_STYLES[color];
   const barWidth = cat.percentage !== null ? Math.min(cat.percentage, 100) : 0;
 
@@ -121,10 +124,16 @@ function PerformanceCard({ cat }: { cat: CategoryPerformance }) {
               <span className="text-lg font-semibold tabular-nums text-gray-900">
                 {formatActual(cat.actual, cat.unit, cat.format)}
               </span>
-              {isConversionRate && cat.metadata ? (
-                <span className="text-xs text-gray-400">
-                  {cat.metadata.numerator} of {cat.metadata.denominator}
-                </span>
+              {isDerivedMetric && cat.metadata ? (
+                cat.format === 'days' ? (
+                  <span className="text-xs text-gray-400">
+                    across {cat.metadata.jobCount} job{cat.metadata.jobCount !== 1 ? 's' : ''}
+                  </span>
+                ) : (
+                  <span className="text-xs text-gray-400">
+                    {cat.metadata.numerator} of {cat.metadata.denominator}
+                  </span>
+                )
               ) : (
                 <span className="text-xs text-gray-400">
                   / {formatTarget(cat.target, cat.unit)}
@@ -132,15 +141,15 @@ function PerformanceCard({ cat }: { cat: CategoryPerformance }) {
               )}
             </div>
           </div>
-          {!isConversionRate && cat.percentage !== null && (
+          {!isDerivedMetric && cat.percentage !== null && (
             <span className={cn('text-sm font-semibold tabular-nums', styles.text)}>
               {cat.percentage}%
             </span>
           )}
         </div>
 
-        {/* Progress bar — hidden for conversion rates (no target) */}
-        {!isConversionRate && (
+        {/* Progress bar — hidden for derived metrics (no target) */}
+        {!isDerivedMetric && (
           <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-100">
             <div
               className={cn('h-full rounded-full transition-all duration-500', styles.bar)}
@@ -234,7 +243,11 @@ function PerformanceHistoryTable({
                       <span className={cn('font-medium', cellColor)}>
                         {formatCellValue(c.actual, c.unit, c.format)}
                       </span>
-                      {c.format === 'percentage' && c.metadata ? (
+                      {c.format === 'days' && c.metadata ? (
+                        <span className="text-gray-400">
+                          {' '}({c.metadata.jobCount}jobs)
+                        </span>
+                      ) : c.format === 'percentage' && c.metadata ? (
                         <span className="text-gray-400">
                           {' '}({c.metadata.numerator}/{c.metadata.denominator})
                         </span>
@@ -256,8 +269,9 @@ function PerformanceHistoryTable({
   );
 }
 
-function formatCellValue(value: number, unit: 'currency' | 'count', format?: 'percentage'): string {
+function formatCellValue(value: number, unit: 'currency' | 'count', format?: 'percentage' | 'days'): string {
   if (format === 'percentage') return `${value.toFixed(1)}%`;
+  if (format === 'days') return `${value.toFixed(1)}d`;
   if (unit === 'currency') {
     return `$${Math.round(value).toLocaleString()}`;
   }

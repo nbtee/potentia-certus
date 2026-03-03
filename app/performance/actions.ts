@@ -98,7 +98,7 @@ export async function getMyPerformance(
   const rangeEnd = months[months.length - 1].end;
 
   // Fire all queries in parallel (5th query only for TM/STM)
-  const [targetsRes, activitiesRes, placementsRes, referralsRes, submissionsRes] = await Promise.all([
+  const [targetsRes, activitiesRes, placementsRes, referralsRes, submissionsRes, firstSubmittalsRes, jobOrdersRes] = await Promise.all([
     // 1. Targets for this user across 6 months
     supabase
       .from('consultant_targets')
@@ -144,6 +144,22 @@ export async function getMyPerformance(
           .in('status_to', CONVERSION_STATUSES)
           .limit(10000)
       : Promise.resolve({ data: [] as { status_to: string; detected_at: string }[], error: null }),
+
+    // 6. First submittals per job order (for time-to-submittal calc)
+    supabase
+      .from('submission_status_log')
+      .select('job_order_id, detected_at, consultant_id')
+      .eq('status_to', 'Submittal')
+      .not('job_order_id', 'is', null)
+      .gte('detected_at', rangeStart)
+      .lte('detected_at', rangeEnd)
+      .limit(10000),
+
+    // 7. Job orders with date_added (for time-to-submittal calc)
+    supabase
+      .from('job_orders')
+      .select('id, date_added, consultant_id')
+      .not('date_added', 'is', null),
   ]);
 
   if (targetsRes.error) return { error: targetsRes.error.message };
@@ -151,6 +167,8 @@ export async function getMyPerformance(
   if (placementsRes.error) return { error: placementsRes.error.message };
   if (referralsRes.error) return { error: referralsRes.error.message };
   if (submissionsRes.error) return { error: submissionsRes.error.message };
+  if (firstSubmittalsRes.error) return { error: firstSubmittalsRes.error.message };
+  if (jobOrdersRes.error) return { error: jobOrdersRes.error.message };
 
   // --- Build target lookup: "YYYY-MM-01:category_key" → value ---
   const targetLookup = new Map<string, number>();
@@ -212,6 +230,55 @@ export async function getMyPerformance(
         submissionCounts.set(fiKey, (submissionCounts.get(fiKey) ?? 0) + 1);
       }
     }
+  }
+
+  // --- Build avg time-to-submittal by month ---
+  // Map: job_order_id → { date_added, ownerId }
+  const jobOrderInfo = new Map<string, { dateAdded: Date; ownerId: string | null }>();
+  for (const jo of jobOrdersRes.data ?? []) {
+    if (jo.date_added) {
+      jobOrderInfo.set(jo.id, {
+        dateAdded: new Date(jo.date_added),
+        ownerId: jo.consultant_id ?? null,
+      });
+    }
+  }
+
+  // Group submittals by job_order_id → find first submittal per job
+  const firstSubmittalByJob = new Map<string, { date: Date; consultantId: string | null }>();
+  for (const s of firstSubmittalsRes.data ?? []) {
+    if (!s.job_order_id) continue;
+    const existing = firstSubmittalByJob.get(s.job_order_id);
+    const detected = new Date(s.detected_at);
+    if (!existing || detected < existing.date) {
+      firstSubmittalByJob.set(s.job_order_id, {
+        date: detected,
+        consultantId: s.consultant_id ?? null,
+      });
+    }
+  }
+
+  // Calculate per-month averages (only jobs where user is involved)
+  // "YYYY-MM-01" → { totalDays, count }
+  const timeToSubmittalByMonth = new Map<string, { totalDays: number; count: number }>();
+  for (const [jobId, submittal] of firstSubmittalByJob) {
+    const jo = jobOrderInfo.get(jobId);
+    if (!jo) continue;
+
+    // User must be either the job owner or the person who made the first submittal
+    const isJobOwner = jo.ownerId === user.id;
+    const isSubmitter = submittal.consultantId === user.id;
+    if (!isJobOwner && !isSubmitter) continue;
+
+    const days = (submittal.date.getTime() - jo.dateAdded.getTime()) / (1000 * 60 * 60 * 24);
+    if (days < 0 || days > 365) continue; // discard outliers
+
+    // Bucket by the submittal month
+    const ms = `${submittal.date.getFullYear()}-${String(submittal.date.getMonth() + 1).padStart(2, '0')}-01`;
+    const entry = timeToSubmittalByMonth.get(ms) ?? { totalDays: 0, count: 0 };
+    entry.totalDays += days;
+    entry.count += 1;
+    timeToSubmittalByMonth.set(ms, entry);
   }
 
   // --- Assemble per-month performance ---
@@ -286,6 +353,22 @@ export async function getMyPerformance(
         metadata: { numerator: placed, denominator: interviews },
       });
     }
+
+    // Append avg time-to-submittal (all user types)
+    const ttsEntry = timeToSubmittalByMonth.get(m.start);
+    const avgDays = ttsEntry && ttsEntry.count > 0
+      ? Math.round((ttsEntry.totalDays / ttsEntry.count) * 10) / 10
+      : 0;
+    categories.push({
+      targetKey: 'avg_time_to_submittal',
+      label: 'Avg Time to Submittal',
+      unit: 'count',
+      format: 'days',
+      actual: avgDays,
+      target: null,
+      percentage: null,
+      metadata: { jobCount: ttsEntry?.count ?? 0 },
+    });
 
     return {
       monthStart: m.start,
