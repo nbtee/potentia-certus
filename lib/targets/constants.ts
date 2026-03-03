@@ -90,6 +90,22 @@ export const TARGET_CATEGORY_MAP = Object.fromEntries(
 ) as Record<string, TargetCategory>;
 
 // =============================================================================
+// Asset Key → Target Type Mapping
+// Maps KPI card asset keys to the corresponding consultant_targets.target_type values.
+// Composite assets (e.g. client_call_count) sum multiple target types.
+// Assets absent from this map have no target (no progress bar shown).
+// =============================================================================
+
+export const ASSET_TO_TARGET_KEYS: Record<string, string[]> = {
+  client_call_count: ['bd_calls', 'adam_calls'],
+  client_meeting_count: ['client_meetings'],
+  candidate_call_count: ['candidate_calls'],
+  candidate_meeting_count: ['candidate_meetings'],
+  strategic_referral_count: ['strategic_referrals'],
+  placement_count: ['placements'],
+};
+
+// =============================================================================
 // Revenue Mode (GP per Hour vs Dollar Figure)
 // =============================================================================
 

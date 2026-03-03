@@ -66,6 +66,7 @@ export function useDrillDownData(assetKey: string | null): UseDrillDownDataRetur
       case 'job_orders': return 'job_orders';
       case 'submission_status_log': return 'submission_status_log';
       case 'placements': return 'placements';
+      case 'strategic_referrals': return 'strategic_referrals';
       default: return 'activities';
     }
   })();

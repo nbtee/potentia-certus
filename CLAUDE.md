@@ -125,7 +125,7 @@ See the Setup & Build Guide for full stage details with test criteria.
 | F | Dashboard Persistence | ✅ Complete |
 | G | Admin UI (9 sections) | ✅ Complete |
 | H | AI Orchestration | ✅ Complete |
-| I | Security Hardening | ⚠️ Partial (25%) |
+| I | Security Hardening | ⚠️ Partial (50%) |
 | J | Performance Tuning | ❌ Not started |
 
 **What's working now:**

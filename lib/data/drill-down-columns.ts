@@ -49,7 +49,8 @@ const clientActivityColumns: DrillDownColumn[] = [
   { key: 'consultant_name', label: 'Consultant', type: 'string' },
   { key: 'candidate_name', label: 'Client Contact', type: 'string' },
   { key: 'contact_title', label: 'Title', type: 'string' },
-  { key: 'contact_company', label: 'Company', type: 'string' },
+  // Company column omitted — SQL Server mirror lacks ClientContact→ClientCorporation link.
+  // Re-add once mirror admin provides ClientCorporationId on TargetJobsDB.Persons.
 ];
 
 /** Get activity columns based on asset's activity types */
@@ -81,5 +82,9 @@ export const drillDownColumns: Record<string, DrillDownColumn[]> = {
     { key: 'status_to', label: 'Status', type: 'string' },
     { key: 'consultant_name', label: 'Consultant', type: 'string' },
     { key: 'comments', label: 'Comments', type: 'string', truncate: true },
+  ],
+  strategic_referrals: [
+    { key: 'referral_date', label: 'Date', type: 'date' },
+    { key: 'consultant_name', label: 'Consultant', type: 'string' },
   ],
 };

@@ -10,6 +10,7 @@
 import { useWidgetData } from '@/lib/data/use-widget-data';
 import { isSingleValue } from '@/lib/data/shape-contracts';
 import { useDrillDown } from '@/lib/contexts/drill-down-context';
+import { useTargetForAsset } from '@/lib/targets/hooks';
 import { formatValue } from '@/lib/utils/format';
 import { motion } from 'framer-motion';
 import { ArrowUp, ArrowDown, Minus, Maximize2, type LucideIcon } from 'lucide-react';
@@ -31,24 +32,28 @@ const colorSchemes = {
     iconBg: 'bg-teal-500/10',
     iconColor: 'text-teal-600',
     border: 'border-teal-200',
+    barFill: 'bg-teal-500',
   },
   green: {
     gradient: 'from-green-500/10 to-green-600/5',
     iconBg: 'bg-green-500/10',
     iconColor: 'text-green-600',
     border: 'border-green-200',
+    barFill: 'bg-green-500',
   },
   purple: {
     gradient: 'from-purple-500/10 to-purple-600/5',
     iconBg: 'bg-purple-500/10',
     iconColor: 'text-purple-600',
     border: 'border-purple-200',
+    barFill: 'bg-purple-500',
   },
   orange: {
     gradient: 'from-orange-500/10 to-orange-600/5',
     iconBg: 'bg-orange-500/10',
     iconColor: 'text-orange-600',
     border: 'border-orange-200',
+    barFill: 'bg-orange-500',
   },
 };
 
@@ -60,6 +65,7 @@ export function KPICard({
   consultantId,
 }: KPICardProps) {
   const { openDrillDown } = useDrillDown();
+  const { targetValue } = useTargetForAsset(assetKey, dateRange);
   const { data, isLoading, error } = useWidgetData({
     assetKey,
     shape: 'single_value',
@@ -146,9 +152,31 @@ export function KPICard({
       </motion.div>
 
       {/* Label */}
-      <div className="mb-3 text-sm font-medium text-gray-600">
+      <div className={`${targetValue != null && targetValue > 0 ? 'mb-2' : 'mb-3'} text-sm font-medium text-gray-600`}>
         {metric.label}
       </div>
+
+      {/* Target Progress */}
+      {targetValue != null && targetValue > 0 && (() => {
+        const pct = (Number(metric.value) / targetValue) * 100;
+        const clampedPct = Math.min(pct, 100);
+        const isOver = pct >= 100;
+        return (
+          <div className="mb-3 flex items-center gap-2">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-200">
+              <motion.div
+                className={`h-full rounded-full ${isOver ? 'bg-green-500' : colors.barFill}`}
+                initial={{ width: 0 }}
+                animate={{ width: `${clampedPct}%` }}
+                transition={{ duration: 0.6, ease: 'easeOut', delay: 0.3 }}
+              />
+            </div>
+            <span className={`text-xs font-medium tabular-nums ${isOver ? 'text-green-600' : 'text-gray-500'}`}>
+              {Math.round(pct)}%
+            </span>
+          </div>
+        );
+      })()}
 
       {/* Comparison */}
       {metric.comparison && (

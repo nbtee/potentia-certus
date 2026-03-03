@@ -18,6 +18,7 @@ import {
   Send,
   UserCheck,
   Star,
+  Award,
 } from 'lucide-react';
 import { useDateRange } from '@/lib/contexts/filter-context';
 
@@ -41,7 +42,7 @@ export function DashboardContent() {
       {/* KPI Cards (single_value shape) */}
       {/* ================================================================ */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {/* Row 1: Sales leading activities */}
+        {/* Row 1: Sales leading */}
         <WidgetErrorBoundary fallbackTitle="Client Calls failed">
           <KPICard
             assetKey="client_call_count"
@@ -58,11 +59,11 @@ export function DashboardContent() {
             dateRange={dateRange}
           />
         </WidgetErrorBoundary>
-        <WidgetErrorBoundary fallbackTitle="First Interviews failed">
+        <WidgetErrorBoundary fallbackTitle="New Jobs failed">
           <KPICard
-            assetKey="first_interview_count"
-            icon={UserCheck}
-            colorScheme="green"
+            assetKey="job_order_count"
+            icon={Briefcase}
+            colorScheme="purple"
             dateRange={dateRange}
           />
         </WidgetErrorBoundary>
@@ -92,11 +93,11 @@ export function DashboardContent() {
           />
         </WidgetErrorBoundary>
         {/* Row 3: Outcomes */}
-        <WidgetErrorBoundary fallbackTitle="New Jobs failed">
+        <WidgetErrorBoundary fallbackTitle="First Interviews failed">
           <KPICard
-            assetKey="job_order_count"
-            icon={Briefcase}
-            colorScheme="purple"
+            assetKey="first_interview_count"
+            icon={UserCheck}
+            colorScheme="green"
             dateRange={dateRange}
           />
         </WidgetErrorBoundary>
@@ -105,6 +106,14 @@ export function DashboardContent() {
             assetKey="strategic_referral_count"
             icon={Star}
             colorScheme="orange"
+            dateRange={dateRange}
+          />
+        </WidgetErrorBoundary>
+        <WidgetErrorBoundary fallbackTitle="Placements failed">
+          <KPICard
+            assetKey="placement_count"
+            icon={Award}
+            colorScheme="teal"
             dateRange={dateRange}
           />
         </WidgetErrorBoundary>
