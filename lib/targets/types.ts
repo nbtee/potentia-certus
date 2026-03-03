@@ -15,9 +15,11 @@ export interface CategoryPerformance {
   targetKey: string;
   label: string;
   unit: 'currency' | 'count';
+  format?: 'percentage';
   actual: number;
   target: number | null;
   percentage: number | null; // null when no target set
+  metadata?: { numerator: number; denominator: number };
 }
 
 export interface MonthPerformance {
@@ -26,7 +28,10 @@ export interface MonthPerformance {
   categories: CategoryPerformance[];
 }
 
+export type TimeWindow = '6-month' | 'ytd';
+
 export interface PerformanceData {
   current: MonthPerformance;
   history: MonthPerformance[];
+  userTitle?: string | null;
 }

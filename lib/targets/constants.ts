@@ -9,6 +9,11 @@ export interface TargetCategory {
 /** Titles that get placement count targets instead of revenue targets */
 export const PLACEMENT_TITLES = new Set(['talent_manager', 'senior_talent_manager']);
 
+/** Categories hidden for placement-title users (TM/STM) — they don't do BD */
+export const PLACEMENT_TITLE_EXCLUDED_CATEGORIES = new Set([
+  'revenue', 'bd_calls', 'adam_calls', 'client_meetings',
+]);
+
 export const TARGET_CATEGORIES: TargetCategory[] = [
   {
     key: 'revenue',

@@ -10,12 +10,15 @@ import {
   Briefcase,
   Handshake,
   Star,
+  Percent,
+  CalendarCheck,
 } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MonthSelector } from '@/app/admin/targets/month-selector';
 import { useMyPerformance } from '@/lib/targets/hooks';
 import { getCurrentMonthStart, getMonthStart } from '@/lib/targets/month-utils';
 import { cn } from '@/lib/utils';
-import type { CategoryPerformance, MonthPerformance } from '@/lib/targets/types';
+import type { CategoryPerformance, MonthPerformance, TimeWindow } from '@/lib/targets/types';
 
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   revenue: DollarSign,
@@ -25,9 +28,13 @@ const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>
   adam_calls: Handshake,
   client_meetings: Users,
   strategic_referrals: Star,
+  first_interviews: CalendarCheck,
+  sub_to_interview_rate: Percent,
+  interview_to_placement_rate: Percent,
 };
 
-function formatActual(value: number, unit: 'currency' | 'count'): string {
+function formatActual(value: number, unit: 'currency' | 'count', format?: 'percentage'): string {
+  if (format === 'percentage') return `${value.toFixed(1)}%`;
   if (unit === 'currency') {
     return value >= 1000
       ? `$${(value / 1000).toFixed(value % 1000 === 0 ? 0 : 1)}k`
@@ -84,7 +91,8 @@ const STATUS_STYLES: Record<StatusColor, { icon: string; bar: string; text: stri
 
 function PerformanceCard({ cat }: { cat: CategoryPerformance }) {
   const Icon = CATEGORY_ICONS[cat.targetKey] ?? Star;
-  const color = getStatusColor(cat.percentage);
+  const isConversionRate = cat.format === 'percentage';
+  const color = isConversionRate ? 'gray' as StatusColor : getStatusColor(cat.percentage);
   const styles = STATUS_STYLES[color];
   const barWidth = cat.percentage !== null ? Math.min(cat.percentage, 100) : 0;
 
@@ -111,33 +119,49 @@ function PerformanceCard({ cat }: { cat: CategoryPerformance }) {
             </p>
             <div className="mt-0.5 flex items-baseline gap-2">
               <span className="text-lg font-semibold tabular-nums text-gray-900">
-                {formatActual(cat.actual, cat.unit)}
+                {formatActual(cat.actual, cat.unit, cat.format)}
               </span>
-              <span className="text-xs text-gray-400">
-                / {formatTarget(cat.target, cat.unit)}
-              </span>
+              {isConversionRate && cat.metadata ? (
+                <span className="text-xs text-gray-400">
+                  {cat.metadata.numerator} of {cat.metadata.denominator}
+                </span>
+              ) : (
+                <span className="text-xs text-gray-400">
+                  / {formatTarget(cat.target, cat.unit)}
+                </span>
+              )}
             </div>
           </div>
-          {cat.percentage !== null && (
+          {!isConversionRate && cat.percentage !== null && (
             <span className={cn('text-sm font-semibold tabular-nums', styles.text)}>
               {cat.percentage}%
             </span>
           )}
         </div>
 
-        {/* Progress bar */}
-        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-100">
-          <div
-            className={cn('h-full rounded-full transition-all duration-500', styles.bar)}
-            style={{ width: `${barWidth}%` }}
-          />
-        </div>
+        {/* Progress bar — hidden for conversion rates (no target) */}
+        {!isConversionRate && (
+          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-100">
+            <div
+              className={cn('h-full rounded-full transition-all duration-500', styles.bar)}
+              style={{ width: `${barWidth}%` }}
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );
 }
 
-function PerformanceHistoryTable({ history }: { history: MonthPerformance[] }) {
+function PerformanceHistoryTable({
+  history,
+  timeWindow,
+  onTimeWindowChange,
+}: {
+  history: MonthPerformance[];
+  timeWindow: TimeWindow;
+  onTimeWindowChange: (tw: TimeWindow) => void;
+}) {
   if (history.length === 0) return null;
 
   const categories = history[0].categories;
@@ -145,9 +169,17 @@ function PerformanceHistoryTable({ history }: { history: MonthPerformance[] }) {
 
   return (
     <div className="mt-8">
-      <h2 className="mb-3 text-sm font-semibold text-gray-700">
-        6-Month Overview
-      </h2>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-gray-700">
+          {timeWindow === 'ytd' ? 'Year-to-Date' : '6-Month Overview'}
+        </h2>
+        <Tabs value={timeWindow} onValueChange={(v) => onTimeWindowChange(v as TimeWindow)}>
+          <TabsList className="h-8">
+            <TabsTrigger value="6-month" className="text-xs px-3 py-1">6-Month</TabsTrigger>
+            <TabsTrigger value="ytd" className="text-xs px-3 py-1">Year-to-Date</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
       <div className="overflow-x-auto rounded-lg border border-gray-200">
         <table className="w-full text-sm">
           <thead>
@@ -200,14 +232,18 @@ function PerformanceHistoryTable({ history }: { history: MonthPerformance[] }) {
                       )}
                     >
                       <span className={cn('font-medium', cellColor)}>
-                        {formatCellValue(c.actual, c.unit)}
+                        {formatCellValue(c.actual, c.unit, c.format)}
                       </span>
-                      {c.target !== null && (
+                      {c.format === 'percentage' && c.metadata ? (
+                        <span className="text-gray-400">
+                          {' '}({c.metadata.numerator}/{c.metadata.denominator})
+                        </span>
+                      ) : c.target !== null ? (
                         <span className="text-gray-400">
                           {' / '}
                           {formatCellValue(c.target, c.unit)}
                         </span>
-                      )}
+                      ) : null}
                     </td>
                   );
                 })}
@@ -220,7 +256,8 @@ function PerformanceHistoryTable({ history }: { history: MonthPerformance[] }) {
   );
 }
 
-function formatCellValue(value: number, unit: 'currency' | 'count'): string {
+function formatCellValue(value: number, unit: 'currency' | 'count', format?: 'percentage'): string {
+  if (format === 'percentage') return `${value.toFixed(1)}%`;
   if (unit === 'currency') {
     return `$${Math.round(value).toLocaleString()}`;
   }
@@ -229,8 +266,9 @@ function formatCellValue(value: number, unit: 'currency' | 'count'): string {
 
 export function MyPerformance() {
   const [currentMonth, setCurrentMonth] = useState(getCurrentMonthStart);
+  const [timeWindow, setTimeWindow] = useState<TimeWindow>('6-month');
   const monthStart = getMonthStart(currentMonth);
-  const { data, isLoading } = useMyPerformance(monthStart);
+  const { data, isLoading } = useMyPerformance(monthStart, timeWindow);
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -261,7 +299,11 @@ export function MyPerformance() {
           </div>
 
           {/* History table */}
-          <PerformanceHistoryTable history={data.history} />
+          <PerformanceHistoryTable
+            history={data.history}
+            timeWindow={timeWindow}
+            onTimeWindowChange={setTimeWindow}
+          />
         </>
       ) : (
         <div className="py-20 text-center text-sm text-gray-500">

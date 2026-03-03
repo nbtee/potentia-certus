@@ -6,6 +6,7 @@ import { getMyPerformance } from '@/app/performance/actions';
 import { useFilters } from '@/lib/contexts/filter-context';
 import { createClient } from '@/lib/supabase/client';
 import { ASSET_TO_TARGET_KEYS } from './constants';
+import type { TimeWindow } from './types';
 
 export function useMyTargets(monthStart: string) {
   return useQuery({
@@ -18,11 +19,11 @@ export function useMyTargets(monthStart: string) {
   });
 }
 
-export function useMyPerformance(monthStart: string) {
+export function useMyPerformance(monthStart: string, timeWindow: TimeWindow = '6-month') {
   return useQuery({
-    queryKey: ['my-performance', monthStart],
+    queryKey: ['my-performance', monthStart, timeWindow],
     queryFn: async () => {
-      const result = await getMyPerformance(monthStart);
+      const result = await getMyPerformance(monthStart, timeWindow);
       if (result.error) throw new Error(result.error);
       return result.data;
     },

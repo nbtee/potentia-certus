@@ -7,7 +7,7 @@
  *     19: Welly Perm         → Wellington Perm   (00000000-0000-0000-0000-000000000021)
  *     20: Auckland Contract  → Auckland Contract (00000000-0000-0000-0000-000000000012)
  *     21: Welly Contract     → Wellington Contract (00000000-0000-0000-0000-000000000022)
- *     22: Leadership         → Potentia Group NZ (national) (00000000-0000-0000-0000-000000000001)
+ *     22: Leadership         → Leadership (team) (449c2c0c-4955-4779-974d-79e99d9a882b)
  *     23: Christchurch Perm  → Christchurch Perm (00000000-0000-0000-0000-000000000031)
  *     24: Christchurch Contract → Christchurch Contract (00000000-0000-0000-0000-000000000032)
  *     25: Dunedin Perm       → Dunedin Perm      (00000000-0000-0000-0000-000000000041)
@@ -47,7 +47,7 @@ const DEPARTMENT_TO_NODE = {
   '19': '00000000-0000-0000-0000-000000000021', // Wellington Perm (Welly Perm in SQL Server)
   '20': '00000000-0000-0000-0000-000000000012', // Auckland Contract
   '21': '00000000-0000-0000-0000-000000000022', // Wellington Contract (Welly Contract in SQL Server)
-  '22': '00000000-0000-0000-0000-000000000001', // Leadership → National level
+  '22': '449c2c0c-4955-4779-974d-79e99d9a882b', // Leadership
   '23': '00000000-0000-0000-0000-000000000031', // Christchurch Perm
   '24': '00000000-0000-0000-0000-000000000032', // Christchurch Contract
   '25': '00000000-0000-0000-0000-000000000041', // Dunedin Perm

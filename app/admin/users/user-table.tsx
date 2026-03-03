@@ -39,6 +39,7 @@ const titleLabels: Record<string, string> = {
   consultant: 'Consultant',
   senior_consultant: 'Senior Consultant',
   principal_consultant: 'Principal Consultant',
+  delivery_lead: 'Delivery Lead',
   talent_manager: 'Talent Manager',
   senior_talent_manager: 'Senior Talent Manager',
   general_manager: 'General Manager',

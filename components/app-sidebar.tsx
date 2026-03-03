@@ -10,7 +10,6 @@ import {
   Settings,
   Database,
   TrendingUp,
-  Layers,
   Shield,
   Network,
   Target,
@@ -52,12 +51,6 @@ const navigation: NavItem[] = [
     name: 'Dashboard',
     href: '/dashboard',
     icon: LayoutDashboard,
-    roles: ['consultant', 'team_lead', 'manager', 'admin'],
-  },
-  {
-    name: 'My Dashboards',
-    href: '/dashboards',
-    icon: Layers,
     roles: ['consultant', 'team_lead', 'manager', 'admin'],
   },
   {
