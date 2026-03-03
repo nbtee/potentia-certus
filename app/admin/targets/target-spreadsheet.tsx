@@ -249,6 +249,11 @@ export function TargetSpreadsheet({
                         <td className="sticky left-0 z-10 bg-white px-3 py-1 pl-8 font-medium text-gray-800">
                           <span className="inline-flex items-center">
                             {c.firstName} {c.lastName}
+                            {c.title && (
+                              <span className="ml-2 text-[11px] font-normal text-gray-400">
+                                {c.title.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+                              </span>
+                            )}
                             {showModeToggle && !isPlacementTitle && (
                               <RevenueModeToggle
                                 consultantId={c.consultantId}
