@@ -1,9 +1,15 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { z } from 'zod';
 import { writeAuditLog } from '@/lib/admin/audit';
 import type { UserProfile } from '@/lib/admin/types';
+
+function getRedirectTo() {
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL?.replace('.supabase.co', '') ?? 'http://localhost:3000';
+  return `${baseUrl}/auth/confirm`;
+}
 
 type ActionResult<T = void> =
   | { data: T; error?: never }
@@ -84,13 +90,13 @@ export async function inviteUser(
   const parsed = inviteSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.errors[0].message };
 
+  const admin = createAdminClient();
   const supabase = await createClient();
 
-  // In dev mode, create user via signUp (production would use invite)
-  const { data: authData, error: authError } = await supabase.auth.signUp({
-    email: parsed.data.email,
-    password: crypto.randomUUID(), // Random password for dev
-  });
+  const { data: authData, error: authError } =
+    await admin.auth.admin.inviteUserByEmail(parsed.data.email, {
+      redirectTo: getRedirectTo(),
+    });
 
   if (authError) return { error: authError.message };
   if (!authData.user) return { error: 'Failed to create auth user' };
@@ -116,7 +122,6 @@ export async function inviteUser(
     email: parsed.data.email,
     role: parsed.data.role,
   });
-
 
   return { data: profile as UserProfile };
 }
@@ -230,6 +235,72 @@ export async function reactivateUser(
 
   await writeAuditLog('user.reactivate', 'user_profiles', userId);
 
+  return { data: undefined };
+}
+
+// =============================================================================
+// Send Invite Email (re-invite existing user)
+// =============================================================================
+
+export async function sendInviteEmail(
+  userId: string
+): Promise<ActionResult<void>> {
+  const adminId = await requireAdmin();
+  if (!adminId) return { error: 'Admin access required' };
+
+  const supabase = await createClient();
+  const { data: profile, error: lookupError } = await supabase
+    .from('user_profiles')
+    .select('email')
+    .eq('id', userId)
+    .single();
+
+  if (lookupError || !profile?.email) return { error: 'User not found' };
+
+  const admin = createAdminClient();
+  const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(
+    profile.email,
+    { redirectTo: getRedirectTo() }
+  );
+
+  if (inviteError) return { error: inviteError.message };
+
+  await writeAuditLog('user.reinvite', 'user_profiles', userId, null, {
+    email: profile.email,
+  });
+
+  return { data: undefined };
+}
+
+// =============================================================================
+// Send Password Reset
+// =============================================================================
+
+export async function sendPasswordReset(
+  userId: string
+): Promise<ActionResult<void>> {
+  const adminId = await requireAdmin();
+  if (!adminId) return { error: 'Admin access required' };
+
+  const supabase = await createClient();
+  const { data: profile, error: lookupError } = await supabase
+    .from('user_profiles')
+    .select('email')
+    .eq('id', userId)
+    .single();
+
+  if (lookupError || !profile?.email) return { error: 'User not found' };
+
+  const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+    profile.email,
+    { redirectTo: getRedirectTo() }
+  );
+
+  if (resetError) return { error: resetError.message };
+
+  await writeAuditLog('user.password_reset', 'user_profiles', userId, null, {
+    email: profile.email,
+  });
 
   return { data: undefined };
 }

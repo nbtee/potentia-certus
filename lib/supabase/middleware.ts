@@ -35,6 +35,17 @@ export async function updateSession(request: NextRequest) {
   // supabase.auth.getUser(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.
 
+  // Intercept auth code from Supabase email links (PKCE flow).
+  // Supabase redirects to the Site URL with ?code=..., so we forward
+  // it to /auth/confirm which exchanges the code for a session.
+  const code = request.nextUrl.searchParams.get('code');
+  if (code && request.nextUrl.pathname === '/') {
+    const url = request.nextUrl.clone();
+    url.pathname = '/auth/confirm';
+    // Keep the code param, it's already in searchParams
+    return NextResponse.redirect(url);
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -43,6 +54,8 @@ export async function updateSession(request: NextRequest) {
     !user &&
     !request.nextUrl.pathname.startsWith('/login') &&
     !request.nextUrl.pathname.startsWith('/signup') &&
+    !request.nextUrl.pathname.startsWith('/auth/confirm') &&
+    !request.nextUrl.pathname.startsWith('/set-password') &&
     !request.nextUrl.pathname.startsWith('/api/auth') &&
     !request.nextUrl.pathname.startsWith('/api/cron') &&
     request.nextUrl.pathname !== '/'

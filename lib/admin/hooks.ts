@@ -7,6 +7,8 @@ import {
   deactivateUser,
   reactivateUser,
   inviteUser,
+  sendInviteEmail,
+  sendPasswordReset,
 } from '@/app/admin/users/actions';
 import {
   listNodes,
@@ -125,6 +127,24 @@ export function useReactivateUser() {
       if (result.error) throw new Error(result.error);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: adminKeys.users }),
+  });
+}
+
+export function useSendInvite() {
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const result = await sendInviteEmail(userId);
+      if (result.error) throw new Error(result.error);
+    },
+  });
+}
+
+export function useSendPasswordReset() {
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const result = await sendPasswordReset(userId);
+      if (result.error) throw new Error(result.error);
+    },
   });
 }
 

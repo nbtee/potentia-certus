@@ -12,13 +12,20 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useUsers, useDeactivateUser, useReactivateUser } from '@/lib/admin/hooks';
+import {
+  useUsers,
+  useDeactivateUser,
+  useReactivateUser,
+  useSendInvite,
+  useSendPasswordReset,
+} from '@/lib/admin/hooks';
 import { UserDialog } from './user-dialog';
 import { CSVImportDialog } from './csv-import-dialog';
 import type { UserProfile } from '@/lib/admin/types';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { MoreHorizontal, Plus, UserX, UserCheck, Pencil, Upload } from 'lucide-react';
+import { MoreHorizontal, Plus, UserX, UserCheck, Pencil, Upload, Mail, KeyRound } from 'lucide-react';
+import { toast } from 'sonner';
 
 const roleColors: Record<string, string> = {
   admin: 'bg-purple-100 text-purple-800',
@@ -47,11 +54,15 @@ function RowActions({
   onEdit,
   onDeactivate,
   onReactivate,
+  onSendInvite,
+  onResetPassword,
 }: {
   user: UserProfile;
   onEdit: (u: UserProfile) => void;
   onDeactivate: (id: string) => void;
   onReactivate: (id: string) => void;
+  onSendInvite: (id: string) => void;
+  onResetPassword: (id: string) => void;
 }) {
   return (
     <DropdownMenu modal={false}>
@@ -65,6 +76,18 @@ function RowActions({
           <Pencil className="mr-2 h-3.5 w-3.5" />
           Edit
         </DropdownMenuItem>
+        {user.is_active && (
+          <>
+            <DropdownMenuItem onClick={() => onSendInvite(user.id)}>
+              <Mail className="mr-2 h-3.5 w-3.5" />
+              Send Invite
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onResetPassword(user.id)}>
+              <KeyRound className="mr-2 h-3.5 w-3.5" />
+              Reset Password
+            </DropdownMenuItem>
+          </>
+        )}
         {user.is_active ? (
           <DropdownMenuItem
             className="text-red-600"
@@ -92,6 +115,8 @@ export function UserTable() {
   const { data: users, isLoading } = useUsers();
   const deactivateMutation = useDeactivateUser();
   const reactivateMutation = useReactivateUser();
+  const sendInviteMutation = useSendInvite();
+  const sendPasswordResetMutation = useSendPasswordReset();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
@@ -109,6 +134,10 @@ export function UserTable() {
   deactivateRef.current = deactivateMutation;
   const reactivateRef = useRef(reactivateMutation);
   reactivateRef.current = reactivateMutation;
+  const sendInviteRef = useRef(sendInviteMutation);
+  sendInviteRef.current = sendInviteMutation;
+  const sendPasswordResetRef = useRef(sendPasswordResetMutation);
+  sendPasswordResetRef.current = sendPasswordResetMutation;
 
   const handleEdit = useCallback((u: UserProfile) => {
     setEditingUser(u);
@@ -121,6 +150,20 @@ export function UserTable() {
 
   const handleReactivate = useCallback((id: string) => {
     reactivateRef.current.mutate(id);
+  }, []);
+
+  const handleSendInvite = useCallback((id: string) => {
+    sendInviteRef.current.mutate(id, {
+      onSuccess: () => toast.success('Invite email sent'),
+      onError: (err) => toast.error(`Failed to send invite: ${err.message}`),
+    });
+  }, []);
+
+  const handleResetPassword = useCallback((id: string) => {
+    sendPasswordResetRef.current.mutate(id, {
+      onSuccess: () => toast.success('Password reset email sent'),
+      onError: (err) => toast.error(`Failed to send reset: ${err.message}`),
+    });
   }, []);
 
   // Memoize columns so TanStack Table doesn't infinite re-render
@@ -201,11 +244,13 @@ export function UserTable() {
             onEdit={handleEdit}
             onDeactivate={handleDeactivate}
             onReactivate={handleReactivate}
+            onSendInvite={handleSendInvite}
+            onResetPassword={handleResetPassword}
           />
         ),
       },
     ],
-    [handleEdit, handleDeactivate, handleReactivate]
+    [handleEdit, handleDeactivate, handleReactivate, handleSendInvite, handleResetPassword]
   );
 
   return (
