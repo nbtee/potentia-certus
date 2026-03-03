@@ -4,23 +4,21 @@
 
 Recruitment Data Intelligence Platform. Ingests activity data from Bullhorn ATS (via **SQL Server staging mirror**), applies revenue blending logic, and uses AI to build dashboard widgets from natural language queries.
 
-## ⚠️ CRITICAL PRE-PRODUCTION REQUIREMENT
+## Security Model
 
-**BEFORE PRODUCTION LAUNCH:** The current database security model is simplified for rapid development.
+**Read-all by design:** All authenticated users can see all performance data, matching Potentia's transparent sales culture and existing Bullhorn access model. All read RLS policies use `USING(true)` — this is intentional and documented in migration `20260303220000_harden_write_policies.sql`.
 
-**Current State (Development Only):**
-- All authenticated users can see all data (simplified RLS)
-- Anon key approach with basic Row Level Security
-- Suitable for development and testing ONLY
+**Write-path hardened (Stage I complete):**
+- `is_admin()` / `is_admin_or_manager()` SECURITY DEFINER gates on all write policies
+- `write_audit_log()` restricted to admin callers only
+- `log_unmatched_term()` hardened with auth check, input validation, rate gating
+- Private schema tables (`audit_log`, `ai_rate_limits`) locked with `USING(false)` RLS
+- AI rate limiting (10 req/min per user via `check_rate_limit()`)
+- Security headers (HSTS, X-Frame-Options, X-Content-Type-Options, etc.)
+- Admin UI role gate (admin=full access, manager=read-only, others=403)
 
-**Required Before Production:**
-- Switch to proper role-based access control (RBAC)
-- Implement granular RLS policies based on `org_hierarchy` and user roles (consultant, team_lead, manager, admin)
-- Change database access methodology (not anon key approach)
-- Review and harden all security policies
-- Restrict data visibility by hierarchy level
-
-**Stage I (Security Hardening) will address this.**
+**Before production:**
+- Reset temp passwords (`PotentiaTemp2026!`) for all 49 provisioned users
 
 ## Tech Stack
 
@@ -113,7 +111,7 @@ See the Setup & Build Guide for full stage details with test criteria.
 
 ## Current Status
 
-**Overall: ~90% complete** (9 of 10 stages done)
+**Overall: ~95% complete** (9 of 10 stages done)
 
 | Stage | Name | Status |
 |-------|------|--------|
@@ -125,7 +123,7 @@ See the Setup & Build Guide for full stage details with test criteria.
 | F | Dashboard Persistence | ✅ Complete |
 | G | Admin UI (9 sections) | ✅ Complete |
 | H | AI Orchestration | ✅ Complete |
-| I | Security Hardening | ⚠️ Partial (50%) |
+| I | Security Hardening | ✅ Complete |
 | J | Performance Tuning | ❌ Not started |
 
 **What's working now:**
@@ -143,7 +141,7 @@ See the Setup & Build Guide for full stage details with test criteria.
 - AI rate limiting (10 req/min per user), unmatched term logging, context-aware system prompt
 - Floatinator design system: Potentia brand colors (#00E5C0 teal), Degular Display + Gesta fonts, gradient backgrounds, Potentia logo
 
-**Next stages:** I (Security Hardening) and J (Performance Tuning).
+**Next stage:** J (Performance Tuning).
 
 **Inputs still needed from stakeholder:**
 - Context document content (4 Markdown docs)

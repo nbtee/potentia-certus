@@ -53,12 +53,16 @@ export type BuilderResponse = z.infer<typeof builderResponseSchema>;
 
 export const answerResponseSchema = z.object({
   mode: z.literal('answer'),
-  reasoning: z.string().describe('Explanation of how the answer was derived'),
-  data_asset: z.string().describe('The asset_key used to answer'),
-  parameters: z.record(z.unknown()).default({}).describe('Query parameters used'),
-  answer: z.string().describe('Formatted natural language answer'),
-  offer_persist: z.boolean().describe('Whether to offer saving as a widget'),
-  unmatched_terms: z.array(z.string()).optional(),
+  asset_key: z.string().describe('The asset_key that was queried'),
+  shape: z.string().describe('The shape used for the query'),
+  scope: z.string().describe('Scope label (team/region/consultant/national)'),
+  date_range: z.object({
+    start: z.string(),
+    end: z.string(),
+  }).nullable().describe('Date range used'),
+  formatted_result: z.string().describe('Human-readable query result'),
+  query_time_ms: z.number().describe('Query execution time'),
+  record_count: z.number().describe('Number of records returned'),
 });
 
 export type AnswerResponse = z.infer<typeof answerResponseSchema>;

@@ -109,10 +109,11 @@ function applyConsultantFilter<T extends { in: (col: string, vals: string[]) => 
 // ============================================================================
 
 export async function queryDataAsset(
-  params: DataAssetParams
+  params: DataAssetParams,
+  supabaseClient?: SupabaseClient
 ): Promise<DataAssetResponse> {
   const startTime = Date.now();
-  const supabase = createClient();
+  const supabase = supabaseClient ?? createClient();
 
   // Fetch the data asset definition
   const { data: asset, error: assetError } = await supabase
@@ -273,7 +274,13 @@ async function queryCategorical(
   asset: DataAsset,
   params: DataAssetParams
 ): Promise<Categorical> {
-  const activityTypes = (asset.metadata as Record<string, unknown>)?.activity_types as string[] ?? [];
+  // Conversion rate assets have numerator/denominator statuses — delegate
+  const meta = asset.metadata as Record<string, unknown>;
+  if (meta?.numerator_statuses && meta?.denominator_statuses) {
+    return queryConversionCategorical(supabase, asset, params);
+  }
+
+  const activityTypes = (meta?.activity_types as string[]) ?? [];
   const { table, dateColumn } = getSourceConfig(asset);
 
   // Determine the series breakdown column based on source table
@@ -353,6 +360,96 @@ async function queryCategorical(
     categories,
     series: series.length > 0 ? series : undefined,
     format: 'number',
+  };
+}
+
+// ============================================================================
+// Conversion Rate Categorical Query
+// ============================================================================
+
+/**
+ * Per-consultant conversion rate leaderboard.
+ * Computes numerator_count / denominator_count for each consultant,
+ * filters out those below min_sample_size, and returns ranked results.
+ */
+async function queryConversionCategorical(
+  supabase: SupabaseClient,
+  asset: DataAsset,
+  params: DataAssetParams
+): Promise<Categorical> {
+  const meta = asset.metadata as Record<string, unknown>;
+  const numeratorStatuses = meta.numerator_statuses as string[];
+  const denominatorStatuses = meta.denominator_statuses as string[];
+  const allStatuses = [...denominatorStatuses, ...numeratorStatuses];
+  const minSampleSize = (meta.min_sample_size as number) ?? 5;
+
+  // Fetch all matching rows (both numerator and denominator statuses)
+  let query = supabase
+    .from('submission_status_log')
+    .select('consultant_id, status_to, user_profiles(display_name, first_name, last_name)')
+    .in('status_to', allStatuses);
+
+  query = applyDateRange(query, params.filters?.dateRange, 'detected_at');
+  query = applyConsultantFilter(query, params.filters);
+
+  const data = await fetchAllRows(query) as any[];
+
+  // Group by consultant: count numerator and denominator hits
+  const consultantNames = new Map<string, string>();
+  const numeratorCounts = new Map<string, number>();
+  const denominatorCounts = new Map<string, number>();
+  const numeratorSet = new Set(numeratorStatuses);
+  const denominatorSet = new Set(denominatorStatuses);
+
+  for (const row of data || []) {
+    const consultantId = row.consultant_id as string | null;
+    const status = row.status_to as string | null;
+    if (!consultantId || !status) continue;
+
+    // Resolve display name once per consultant
+    if (!consultantNames.has(consultantId)) {
+      const profile = Array.isArray(row.user_profiles)
+        ? row.user_profiles[0]
+        : row.user_profiles;
+      consultantNames.set(
+        consultantId,
+        profile?.display_name ||
+          (profile?.first_name && profile?.last_name
+            ? `${profile.first_name} ${profile.last_name}`
+            : profile?.first_name || profile?.last_name || 'Unknown')
+      );
+    }
+
+    if (numeratorSet.has(status)) {
+      numeratorCounts.set(consultantId, (numeratorCounts.get(consultantId) || 0) + 1);
+    }
+    if (denominatorSet.has(status)) {
+      denominatorCounts.set(consultantId, (denominatorCounts.get(consultantId) || 0) + 1);
+    }
+  }
+
+  // Compute conversion rates, filter by min sample size, sort descending
+  const results: Array<{ id: string; rate: number; numerator: number; denominator: number }> = [];
+
+  for (const [id, denom] of denominatorCounts) {
+    if (denom < minSampleSize) continue;
+    const numer = numeratorCounts.get(id) || 0;
+    results.push({ id, rate: numer / denom, numerator: numer, denominator: denom });
+  }
+
+  results.sort((a, b) => b.rate - a.rate);
+  const top = results.slice(0, params.limit || 10);
+
+  const categories = top.map((r) => ({
+    label: consultantNames.get(r.id) || 'Unknown',
+    value: r.rate,
+    metadata: { numerator: r.numerator, denominator: r.denominator } as Record<string, unknown>,
+  }));
+
+  return {
+    _shape: 'categorical',
+    categories,
+    format: 'percentage',
   };
 }
 

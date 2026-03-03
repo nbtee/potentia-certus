@@ -70,12 +70,7 @@ export function ChatMessage({ message, dashboardId, isLast }: ChatMessageProps) 
           if (result.mode === 'answer') {
             return (
               <div key={invocation.toolCallId} className="rounded-lg border bg-white p-3 text-sm">
-                <p className="whitespace-pre-wrap text-gray-900">{result.answer}</p>
-                {result.offer_persist && (
-                  <p className="mt-2 text-xs text-gray-500 italic">
-                    Tip: Ask me to &quot;add this as a widget&quot; to save it to your dashboard.
-                  </p>
-                )}
+                <p className="whitespace-pre-wrap text-gray-900">{result.formatted_result}</p>
               </div>
             );
           }
