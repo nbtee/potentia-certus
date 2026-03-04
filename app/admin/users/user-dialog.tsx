@@ -27,6 +27,7 @@ const TITLE_OPTIONS = [
   { value: 'consultant', label: 'Consultant' },
   { value: 'senior_consultant', label: 'Senior Consultant' },
   { value: 'principal_consultant', label: 'Principal Consultant' },
+  { value: 'national_account_executive', label: 'National Account Executive' },
   { value: 'delivery_lead', label: 'Delivery Lead' },
   { value: 'talent_delivery_lead', label: 'Talent Delivery Lead' },
   { value: 'talent_manager', label: 'Talent Manager' },

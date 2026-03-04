@@ -66,6 +66,7 @@ const titleEnum = z.enum([
   'consultant',
   'senior_consultant',
   'principal_consultant',
+  'national_account_executive',
   'delivery_lead',
   'talent_delivery_lead',
   'talent_manager',
