@@ -32,6 +32,7 @@ function mapRole(occupation: string | null): string {
   if (lower.includes('director')) return 'admin';
   if (lower.includes('general manager')) return 'manager';
   if (lower.includes('senior talent manager')) return 'manager';
+  if (lower.includes('talent delivery lead')) return 'team_lead';
   if (lower.includes('talent manager')) return 'team_lead';
   if (lower.includes('delivery lead')) return 'team_lead';
   if (lower.includes('team lead')) return 'team_lead';
@@ -49,6 +50,7 @@ function mapTitle(occupation: string | null): string | null {
   if (lower.includes('director')) return 'director';
   if (lower.includes('general manager')) return 'general_manager';
   if (lower.includes('senior talent manager')) return 'senior_talent_manager';
+  if (lower.includes('talent delivery lead')) return 'talent_delivery_lead';
   if (lower.includes('talent manager')) return 'talent_manager';
   if (lower.includes('delivery lead')) return 'delivery_lead';
   if (lower.includes('team lead')) return null;
