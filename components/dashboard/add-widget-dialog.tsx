@@ -272,7 +272,7 @@ export function AddWidgetDialog({
                 <div className="space-y-2">
                   <Label>Color Scheme</Label>
                   <div className="flex gap-2">
-                    {(['teal', 'green', 'purple', 'orange'] as const).map(
+                    {(['aqua', 'ocean', 'violet', 'rose'] as const).map(
                       (color) => (
                         <button
                           key={color}
@@ -289,13 +289,13 @@ export function AddWidgetDialog({
                           }`}
                           style={{
                             backgroundColor:
-                              color === 'teal'
-                                ? '#00E5C0'
-                                : color === 'green'
-                                  ? '#10b981'
-                                  : color === 'purple'
-                                    ? '#8b5cf6'
-                                    : '#f59e0b',
+                              color === 'aqua'
+                                ? '#00C9A7'
+                                : color === 'ocean'
+                                  ? '#3B9EB5'
+                                  : color === 'violet'
+                                    ? '#8566A8'
+                                    : '#C75591',
                           }}
                         />
                       )

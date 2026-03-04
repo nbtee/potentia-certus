@@ -16,16 +16,16 @@ export const designTokens = {
   // Color palette - refined for data visualization
   colors: {
     primary: {
-      50: '#f0f9ff',
-      100: '#e0f2fe',
-      200: '#bae6fd',
-      300: '#7dd3fc',
-      400: '#38bdf8',
-      500: '#0ea5e9',  // Primary brand
-      600: '#0284c7',
-      700: '#0369a1',
-      800: '#075985',
-      900: '#0c4a6e',
+      50: '#e6fff9',
+      100: '#b3ffe8',
+      200: '#80ffd7',
+      300: '#4dffc6',
+      400: '#1affb5',
+      500: '#00E5C0',  // Brand Aqua
+      600: '#00b89a',
+      700: '#008f7a',
+      800: '#006659',
+      900: '#003d35',
     },
     success: {
       light: '#d1fae5',
@@ -115,6 +115,29 @@ export const designTokens = {
     spring: 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
   },
 };
+
+// Brand colors
+export const BRAND_COLORS = {
+  pitchBlack: '#0B141B',
+  aqua: '#00E5C0',
+  white: '#FFFFFF',
+  hotPink: '#FF1EFF',
+  crazyTaxi: '#FDEA00',
+} as const;
+
+// Data visualization palette (10 muted brand-gradient colors)
+export const BRAND_VIZ_PALETTE = [
+  '#00C9A7', // Aqua
+  '#3B9EB5', // Ocean
+  '#5488B5', // Steel Blue
+  '#6C6EB5', // Indigo
+  '#8566A8', // Violet
+  '#A85C9A', // Berry
+  '#C75591', // Rose
+  '#D46B7A', // Coral
+  '#C9B73D', // Gold
+  '#B5944A', // Warm Sand
+] as const;
 
 // Animation variants for Framer Motion
 export const animations = {

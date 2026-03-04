@@ -66,6 +66,25 @@
   --color-brand-darker: #008f7a;
   --color-brand-darkest: #007a68;
   --color-brand-foreground: #0B141B;
+
+  /* Brand Identity */
+  --color-brand-pitch-black: #0B141B;
+  --color-brand-aqua: #00E5C0;
+  --color-brand-white: #FFFFFF;
+  --color-brand-hot-pink: #FF1EFF;
+  --color-brand-crazy-taxi: #FDEA00;
+
+  /* Data Viz Palette (10 muted brand-gradient colors) */
+  --color-viz-1: #00C9A7;
+  --color-viz-2: #3B9EB5;
+  --color-viz-3: #5488B5;
+  --color-viz-4: #6C6EB5;
+  --color-viz-5: #8566A8;
+  --color-viz-6: #A85C9A;
+  --color-viz-7: #C75591;
+  --color-viz-8: #D46B7A;
+  --color-viz-9: #C9B73D;
+  --color-viz-10: #B5944A;
 }
 
 /* Bridge ShadCN CSS variables to Tailwind v4 utility classes.

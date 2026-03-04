@@ -38,9 +38,9 @@ interface ConsultantSales {
 }
 
 const CATEGORIES: { key: SalesCategory; color: string }[] = [
-  { key: 'BD Calls', color: '#8b5cf6' },
-  { key: 'AD/AM Calls', color: '#f59e0b' },
-  { key: 'Client Meetings', color: '#00E5C0' },
+  { key: 'BD Calls', color: '#00C9A7' },
+  { key: 'AD/AM Calls', color: '#3B9EB5' },
+  { key: 'Client Meetings', color: '#8566A8' },
 ];
 
 const ACTIVITY_TYPE_TO_CATEGORY: Record<string, SalesCategory> = {

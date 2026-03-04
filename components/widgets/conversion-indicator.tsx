@@ -18,34 +18,34 @@ interface ConversionIndicatorProps {
   /** Direct value mode: previous period value for comparison */
   previousValue?: number;
   dateRange?: { start: string; end: string };
-  colorScheme?: 'teal' | 'green' | 'purple' | 'orange';
+  colorScheme?: 'aqua' | 'ocean' | 'violet' | 'rose';
   description?: string;
 }
 
 const colorSchemes = {
-  teal: {
-    bg: 'bg-teal-50',
-    border: 'border-teal-200',
-    accent: 'text-teal-700',
-    ring: 'ring-teal-500/20',
+  aqua: {
+    bg: 'bg-[#00C9A7]/5',
+    border: 'border-[#00C9A7]/25',
+    accent: 'text-[#00A88A]',
+    ring: 'ring-[#00C9A7]/20',
   },
-  green: {
-    bg: 'bg-green-50',
-    border: 'border-green-200',
-    accent: 'text-green-700',
-    ring: 'ring-green-500/20',
+  ocean: {
+    bg: 'bg-[#3B9EB5]/5',
+    border: 'border-[#3B9EB5]/25',
+    accent: 'text-[#2E7D8F]',
+    ring: 'ring-[#3B9EB5]/20',
   },
-  purple: {
-    bg: 'bg-purple-50',
-    border: 'border-purple-200',
-    accent: 'text-purple-700',
-    ring: 'ring-purple-500/20',
+  violet: {
+    bg: 'bg-[#8566A8]/5',
+    border: 'border-[#8566A8]/25',
+    accent: 'text-[#6B4F8A]',
+    ring: 'ring-[#8566A8]/20',
   },
-  orange: {
-    bg: 'bg-orange-50',
-    border: 'border-orange-200',
-    accent: 'text-orange-700',
-    ring: 'ring-orange-500/20',
+  rose: {
+    bg: 'bg-[#C75591]/5',
+    border: 'border-[#C75591]/25',
+    accent: 'text-[#A84479]',
+    ring: 'ring-[#C75591]/20',
   },
 };
 
@@ -57,7 +57,7 @@ export function ConversionIndicator({
   value: directValue,
   previousValue,
   dateRange,
-  colorScheme = 'teal',
+  colorScheme = 'aqua',
   description,
 }: ConversionIndicatorProps) {
   const { data, isLoading, error } = useWidgetData({

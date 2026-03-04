@@ -19,7 +19,7 @@ import { WidgetInfoButton } from './widget-info-button';
 export interface KPICardProps {
   assetKey: string;
   icon: LucideIcon;
-  colorScheme?: 'teal' | 'green' | 'purple' | 'orange';
+  colorScheme?: 'aqua' | 'ocean' | 'violet' | 'rose';
   dateRange?: {
     start: string;
     end: string;
@@ -29,40 +29,40 @@ export interface KPICardProps {
 }
 
 const colorSchemes = {
-  teal: {
-    gradient: 'from-teal-500/10 to-teal-600/5',
-    iconBg: 'bg-teal-500/10',
-    iconColor: 'text-teal-600',
-    border: 'border-teal-200',
-    barFill: 'bg-teal-500',
+  aqua: {
+    gradient: 'from-[#00C9A7]/10 to-[#00C9A7]/5',
+    iconBg: 'bg-[#00C9A7]/10',
+    iconColor: 'text-[#00A88A]',
+    border: 'border-[#00C9A7]/25',
+    barFill: 'bg-[#00C9A7]',
   },
-  green: {
-    gradient: 'from-green-500/10 to-green-600/5',
-    iconBg: 'bg-green-500/10',
-    iconColor: 'text-green-600',
-    border: 'border-green-200',
-    barFill: 'bg-green-500',
+  ocean: {
+    gradient: 'from-[#3B9EB5]/10 to-[#3B9EB5]/5',
+    iconBg: 'bg-[#3B9EB5]/10',
+    iconColor: 'text-[#2E7D8F]',
+    border: 'border-[#3B9EB5]/25',
+    barFill: 'bg-[#3B9EB5]',
   },
-  purple: {
-    gradient: 'from-purple-500/10 to-purple-600/5',
-    iconBg: 'bg-purple-500/10',
-    iconColor: 'text-purple-600',
-    border: 'border-purple-200',
-    barFill: 'bg-purple-500',
+  violet: {
+    gradient: 'from-[#8566A8]/10 to-[#8566A8]/5',
+    iconBg: 'bg-[#8566A8]/10',
+    iconColor: 'text-[#6B4F8A]',
+    border: 'border-[#8566A8]/25',
+    barFill: 'bg-[#8566A8]',
   },
-  orange: {
-    gradient: 'from-orange-500/10 to-orange-600/5',
-    iconBg: 'bg-orange-500/10',
-    iconColor: 'text-orange-600',
-    border: 'border-orange-200',
-    barFill: 'bg-orange-500',
+  rose: {
+    gradient: 'from-[#C75591]/10 to-[#C75591]/5',
+    iconBg: 'bg-[#C75591]/10',
+    iconColor: 'text-[#A84479]',
+    border: 'border-[#C75591]/25',
+    barFill: 'bg-[#C75591]',
   },
 };
 
 export function KPICard({
   assetKey,
   icon: Icon,
-  colorScheme = 'teal',
+  colorScheme = 'aqua',
   dateRange,
   consultantId,
   description,

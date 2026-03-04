@@ -42,11 +42,11 @@ interface ConsultantDelivery {
 }
 
 const CATEGORIES: { key: DeliveryCategory; color: string }[] = [
-  { key: 'Candidate Calls', color: '#00E5C0' },
-  { key: 'Candidate Meetings', color: '#8b5cf6' },
-  { key: 'Submittals', color: '#f59e0b' },
-  { key: 'Interview Feedback', color: '#10b981' },
-  { key: 'Reference Checks', color: '#ef4444' },
+  { key: 'Candidate Calls', color: '#00C9A7' },
+  { key: 'Candidate Meetings', color: '#3B9EB5' },
+  { key: 'Submittals', color: '#5488B5' },
+  { key: 'Interview Feedback', color: '#8566A8' },
+  { key: 'Reference Checks', color: '#C75591' },
 ];
 
 const ACTIVITY_TYPE_TO_CATEGORY: Record<string, DeliveryCategory> = {

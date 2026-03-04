@@ -38,8 +38,8 @@ export function HeatmapInner({ matrixData, height }: HeatmapInnerProps) {
           tickRotation: 0,
         }}
         colors={{
-          type: 'sequential',
-          scheme: 'blues',
+          type: 'quantize',
+          colors: ['#e6fff9', '#b3ffe8', '#66dfc0', '#33c9a7', '#00b89a', '#008f7a', '#006659'],
         }}
         emptyColor="#f3f4f6"
         borderColor={{ from: 'color', modifiers: [['darker', 0.3]] }}

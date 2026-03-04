@@ -49,7 +49,7 @@ export function DashboardContent() {
           <KPICard
             assetKey="client_call_count"
             icon={TrendingUp}
-            colorScheme="purple"
+            colorScheme="violet"
             dateRange={dateRange}
             description={descriptions.get('client_call_count')}
           />
@@ -58,7 +58,7 @@ export function DashboardContent() {
           <KPICard
             assetKey="client_meeting_count"
             icon={Coffee}
-            colorScheme="orange"
+            colorScheme="rose"
             dateRange={dateRange}
             description={descriptions.get('client_meeting_count')}
           />
@@ -67,7 +67,7 @@ export function DashboardContent() {
           <KPICard
             assetKey="job_order_count"
             icon={Briefcase}
-            colorScheme="purple"
+            colorScheme="violet"
             dateRange={dateRange}
             description={descriptions.get('job_order_count')}
           />
@@ -77,7 +77,7 @@ export function DashboardContent() {
           <KPICard
             assetKey="candidate_call_count"
             icon={Phone}
-            colorScheme="teal"
+            colorScheme="aqua"
             dateRange={dateRange}
             description={descriptions.get('candidate_call_count')}
           />
@@ -86,7 +86,7 @@ export function DashboardContent() {
           <KPICard
             assetKey="candidate_meeting_count"
             icon={Users}
-            colorScheme="green"
+            colorScheme="ocean"
             dateRange={dateRange}
             description={descriptions.get('candidate_meeting_count')}
           />
@@ -95,7 +95,7 @@ export function DashboardContent() {
           <KPICard
             assetKey="submittal_count"
             icon={Send}
-            colorScheme="teal"
+            colorScheme="aqua"
             dateRange={dateRange}
             description={descriptions.get('submittal_count')}
           />
@@ -105,7 +105,7 @@ export function DashboardContent() {
           <KPICard
             assetKey="first_interview_count"
             icon={UserCheck}
-            colorScheme="green"
+            colorScheme="ocean"
             dateRange={dateRange}
             description={descriptions.get('first_interview_count')}
           />
@@ -114,7 +114,7 @@ export function DashboardContent() {
           <KPICard
             assetKey="strategic_referral_count"
             icon={Star}
-            colorScheme="orange"
+            colorScheme="rose"
             dateRange={dateRange}
             description={descriptions.get('strategic_referral_count')}
           />
@@ -123,7 +123,7 @@ export function DashboardContent() {
           <KPICard
             assetKey="placement_count"
             icon={Award}
-            colorScheme="teal"
+            colorScheme="aqua"
             dateRange={dateRange}
             description={descriptions.get('placement_count')}
           />
@@ -137,10 +137,10 @@ export function DashboardContent() {
         <MultiLineChart
           title="Activity vs Outcomes"
           lines={[
-            { assetKey: 'bd_call_count', label: 'BD Calls', color: '#8b5cf6', yAxisId: 'left' },
-            { assetKey: 'client_meeting_count', label: 'Client Meetings', color: '#f59e0b', yAxisId: 'left' },
-            { assetKey: 'job_order_count', label: 'New Jobs', color: '#00E5C0', yAxisId: 'right' },
-            { assetKey: 'placement_count', label: 'Placements', color: '#ef4444', yAxisId: 'right' },
+            { assetKey: 'bd_call_count', label: 'BD Calls', color: '#00C9A7', yAxisId: 'left' },
+            { assetKey: 'client_meeting_count', label: 'Client Meetings', color: '#3B9EB5', yAxisId: 'left' },
+            { assetKey: 'job_order_count', label: 'New Jobs', color: '#8566A8', yAxisId: 'right' },
+            { assetKey: 'placement_count', label: 'Placements', color: '#C75591', yAxisId: 'right' },
           ]}
           dualAxis
           dateRange={dateRange}

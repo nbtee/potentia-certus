@@ -14,34 +14,34 @@ interface StatCardProps {
     isPositive: boolean;
   };
   description?: string;
-  color?: 'teal' | 'green' | 'purple' | 'orange';
+  color?: 'aqua' | 'ocean' | 'violet' | 'rose';
   index?: number;
 }
 
 const colorClasses = {
-  teal: {
-    bg: 'from-teal-500/10 to-emerald-500/10',
-    icon: 'text-teal-500',
-    ring: 'ring-teal-500/20',
-    gradient: 'from-teal-400 to-emerald-500',
+  aqua: {
+    bg: 'from-[#00C9A7]/10 to-[#00C9A7]/5',
+    icon: 'text-[#00C9A7]',
+    ring: 'ring-[#00C9A7]/20',
+    gradient: 'from-[#00C9A7] to-[#3B9EB5]',
   },
-  green: {
-    bg: 'from-emerald-500/10 to-green-500/10',
-    icon: 'text-emerald-500',
-    ring: 'ring-emerald-500/20',
-    gradient: 'from-emerald-400 to-green-500',
+  ocean: {
+    bg: 'from-[#3B9EB5]/10 to-[#5488B5]/10',
+    icon: 'text-[#3B9EB5]',
+    ring: 'ring-[#3B9EB5]/20',
+    gradient: 'from-[#3B9EB5] to-[#5488B5]',
   },
-  purple: {
-    bg: 'from-purple-500/10 to-indigo-500/10',
-    icon: 'text-purple-500',
-    ring: 'ring-purple-500/20',
-    gradient: 'from-purple-400 to-indigo-500',
+  violet: {
+    bg: 'from-[#8566A8]/10 to-[#6C6EB5]/10',
+    icon: 'text-[#8566A8]',
+    ring: 'ring-[#8566A8]/20',
+    gradient: 'from-[#8566A8] to-[#6C6EB5]',
   },
-  orange: {
-    bg: 'from-orange-500/10 to-amber-500/10',
-    icon: 'text-orange-500',
-    ring: 'ring-orange-500/20',
-    gradient: 'from-orange-400 to-amber-500',
+  rose: {
+    bg: 'from-[#C75591]/10 to-[#A85C9A]/10',
+    icon: 'text-[#C75591]',
+    ring: 'ring-[#C75591]/20',
+    gradient: 'from-[#C75591] to-[#A85C9A]',
   },
 };
 
@@ -51,7 +51,7 @@ export function StatCard({
   icon: Icon,
   trend,
   description,
-  color = 'teal',
+  color = 'aqua',
   index = 0,
 }: StatCardProps) {
   const colors = colorClasses[color];

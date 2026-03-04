@@ -29,8 +29,8 @@ interface StackedBarChartProps {
 }
 
 const STACK_COLORS = [
-  '#00E5C0', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444',
-  '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1',
+  '#00C9A7', '#3B9EB5', '#5488B5', '#6C6EB5', '#8566A8',
+  '#A85C9A', '#C75591', '#D46B7A', '#C9B73D', '#B5944A',
 ];
 
 export function StackedBarChart({

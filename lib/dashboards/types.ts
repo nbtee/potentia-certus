@@ -38,7 +38,7 @@ export interface WidgetParameters {
 
 export interface WidgetConfig {
   title?: string;
-  colorScheme?: 'teal' | 'green' | 'purple' | 'orange';
+  colorScheme?: 'aqua' | 'ocean' | 'violet' | 'rose';
   color?: string; // hex color for charts
   barColor?: string;
   lineColor?: string;

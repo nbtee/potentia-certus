@@ -126,7 +126,7 @@ export function buildWidgetProps(
       return {
         ...base,
         icon: resolveIcon(config.icon),
-        colorScheme: config.colorScheme || 'teal',
+        colorScheme: config.colorScheme || 'aqua',
       };
 
     case 'time_series_chart':
@@ -134,7 +134,7 @@ export function buildWidgetProps(
         ...base,
         title: config.title || widget.data_asset?.display_name || 'Chart',
         chartType: config.chartType || 'area',
-        color: config.color || '#3b82f6',
+        color: config.color || '#00C9A7',
         height: config.height,
       };
 
@@ -143,7 +143,7 @@ export function buildWidgetProps(
         ...base,
         title: config.title || widget.data_asset?.display_name || 'Bar Chart',
         orientation: config.orientation || 'vertical',
-        color: config.color || '#3b82f6',
+        color: config.color || '#00C9A7',
         showValues: config.showValues,
         height: config.height,
       };
@@ -174,8 +174,8 @@ export function buildWidgetProps(
       return {
         ...base,
         title: config.title || widget.data_asset?.display_name || 'Combo Chart',
-        barColor: config.barColor || '#3b82f6',
-        lineColor: config.lineColor || '#ef4444',
+        barColor: config.barColor || '#00C9A7',
+        lineColor: config.lineColor || '#C75591',
         movingAverageDays: config.movingAverageDays,
         height: config.height,
       };
@@ -187,7 +187,7 @@ export function buildWidgetProps(
         toLabel: config.toLabel,
         value: config.value,
         previousValue: config.previousValue,
-        colorScheme: config.colorScheme || 'teal',
+        colorScheme: config.colorScheme || 'aqua',
         // conversion_indicator can work with assetKey OR direct values
         ...(assetKey ? { assetKey, dateRange } : {}),
       };

@@ -195,7 +195,7 @@ function useRevenueLeaderboard(dateRange?: DateRange, limit: number = 10) {
 // ============================================================================
 
 const rankIcons = [
-  { Icon: Trophy, color: 'text-yellow-500', bg: 'bg-yellow-50' },
+  { Icon: Trophy, color: 'text-[#FDEA00]', bg: 'bg-[#FDEA00]/10' },
   { Icon: Medal, color: 'text-gray-400', bg: 'bg-gray-50' },
   { Icon: Award, color: 'text-amber-600', bg: 'bg-amber-50' },
 ];
@@ -352,12 +352,12 @@ export function RevenueLeaderboard({
                         }}
                         className={`h-full rounded-full ${
                           index === 0
-                            ? 'bg-yellow-400'
+                            ? 'bg-[#FDEA00]'
                             : index === 1
                               ? 'bg-gray-400'
                               : index === 2
                                 ? 'bg-amber-500'
-                                : 'bg-teal-400'
+                                : 'bg-[#00C9A7]'
                         }`}
                       />
                     </div>

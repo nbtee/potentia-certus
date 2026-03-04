@@ -182,7 +182,7 @@ export function AppSidebar({ userRole }: SidebarProps) {
         animate={{ x: 0, opacity: 1, width: collapsed ? 72 : 256 }}
         transition={{ duration: 0.3, ease: 'easeOut' }}
         className={cn(
-          'flex h-full flex-col bg-gradient-to-b from-gray-900 via-gray-900 to-gray-950 shadow-2xl',
+          'flex h-full flex-col bg-[#0B141B] shadow-2xl',
           // Prevent layout shift before hydration
           !mounted && 'w-64'
         )}
