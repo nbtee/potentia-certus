@@ -1,6 +1,6 @@
 import type sql from 'mssql';
-import type { SyncResult } from './types';
-import { getServiceClient } from './lookups';
+import type { SyncResult } from './types.js';
+import { getServiceClient } from './lookups.js';
 
 const BATCH_SIZE = 500;
 

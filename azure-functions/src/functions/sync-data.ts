@@ -1,27 +1,17 @@
-import { NextResponse } from 'next/server';
-import { getPool, closePool } from '@/lib/sync/sql-server';
-import { buildLookupMaps, getServiceClient } from '@/lib/sync/lookups';
+import { app, type InvocationContext, type Timer } from '@azure/functions';
+import { getPool, closePool } from '../shared/sql-server.js';
+import { buildLookupMaps, getServiceClient } from '../shared/lookups.js';
 import {
   syncActivities,
   syncSubmissions,
   syncPlacements,
   syncJobOrders,
-} from '@/lib/sync/sync-tables';
-import { syncDeletedNotes } from '@/lib/sync/deleted-notes';
-import type { SyncResult } from '@/lib/sync/types';
+} from '../shared/sync-tables.js';
+import { syncDeletedNotes } from '../shared/deleted-notes.js';
+import type { SyncResult } from '../shared/types.js';
 
-export const maxDuration = 300;
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-
-export async function GET(request: Request) {
-  // Verify authorization
-  const authHeader = request.headers.get('authorization');
-  const expectedToken = process.env.CRON_SECRET;
-
-  if (!expectedToken || authHeader !== `Bearer ${expectedToken}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+async function syncData(timer: Timer, context: InvocationContext): Promise<void> {
+  context.log('Incremental sync triggered', timer.isPastDue ? '(past due)' : '');
 
   const supabase = getServiceClient();
   const runStart = new Date().toISOString();
@@ -38,10 +28,8 @@ export async function GET(request: Request) {
     .limit(1);
 
   if (runningSync && runningSync.length > 0) {
-    return NextResponse.json(
-      { skipped: true, reason: 'Sync already running', run_id: runningSync[0].id },
-      { status: 200 }
-    );
+    context.log(`Skipping: sync already running (run_id: ${runningSync[0].id})`);
+    return;
   }
 
   // Find last successful sync timestamp
@@ -54,7 +42,7 @@ export async function GET(request: Request) {
     .limit(1);
 
   const since = lastRun?.[0]?.completed_at || null;
-  console.log(`Incremental sync since: ${since || 'FULL (no previous run)'}`);
+  context.log(`Incremental sync since: ${since || 'FULL (no previous run)'}`);
 
   // Log run start
   const { data: runRecord } = await supabase
@@ -77,26 +65,24 @@ export async function GET(request: Request) {
     const pool = await getPool();
 
     // Build lookup maps
-    console.log('Building lookup maps...');
+    context.log('Building lookup maps...');
     const lookups = await buildLookupMaps();
 
     // Run syncs sequentially (FK order matters)
-    console.log('Syncing activities...');
+    context.log('Syncing activities...');
     results.push(await syncActivities(pool, lookups, since));
 
-    console.log('Syncing deleted notes...');
+    context.log('Syncing deleted notes...');
     results.push(await syncDeletedNotes(pool, since));
 
-    console.log('Syncing submissions...');
+    context.log('Syncing submissions...');
     results.push(await syncSubmissions(pool, lookups, since));
 
-    console.log('Syncing placements...');
+    context.log('Syncing placements...');
     results.push(await syncPlacements(pool, lookups, since));
 
-    console.log('Syncing job orders...');
+    context.log('Syncing job orders...');
     results.push(await syncJobOrders(pool, lookups, since));
-
-    await closePool();
 
     // Determine overall status
     const totalErrors = results.reduce((sum, r) => sum + r.errors, 0);
@@ -119,24 +105,13 @@ export async function GET(request: Request) {
         .eq('id', runId);
     }
 
-    return NextResponse.json({
-      success: true,
-      status,
-      since,
-      duration_ms: Date.now() - new Date(runStart).getTime(),
-      totals: {
-        processed: totalProcessed,
-        inserted: totalInserted,
-        errors: totalErrors,
-      },
-      tables: results,
-    });
+    context.log(
+      `Sync ${status}: ${totalProcessed} processed, ${totalInserted} inserted, ${totalErrors} errors (${Date.now() - new Date(runStart).getTime()}ms)`
+    );
   } catch (error) {
     const message =
       error instanceof Error ? error.message : 'Unknown error';
-    console.error('Sync failed:', message);
-
-    await closePool();
+    context.error('Sync failed:', message);
 
     // Update run record with failure
     if (runId) {
@@ -150,10 +125,12 @@ export async function GET(request: Request) {
         })
         .eq('id', runId);
     }
-
-    return NextResponse.json(
-      { success: false, error: message, tables: results },
-      { status: 500 }
-    );
+  } finally {
+    await closePool().catch(() => {});
   }
 }
+
+app.timer('sync-data', {
+  schedule: '0 */15 * * * *', // Every 15 minutes
+  handler: syncData,
+});

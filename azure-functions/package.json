@@ -1,0 +1,23 @@
+{
+  "name": "potentia-certus-sync",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Azure Functions for Potentia Certus SQL Server sync",
+  "main": "dist/src/functions/*.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "clean": "rm -rf dist",
+    "prestart": "npm run clean && npm run build",
+    "start": "func start"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.5.0",
+    "@supabase/supabase-js": "^2.95.3",
+    "mssql": "^12.2.0"
+  },
+  "devDependencies": {
+    "@types/mssql": "^9.1.9",
+    "typescript": "^5.7.2"
+  }
+}

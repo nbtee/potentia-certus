@@ -3,14 +3,15 @@
  * Connects to PAPJobs database and runs discovery queries to understand actual schema
  */
 
+require('dotenv').config({ path: '.env.local' });
 const sql = require('mssql');
 
 const config = {
-  server: 'papjobsserver.database.windows.net',
+  server: process.env.SQL_SERVER_HOST,
   port: 1433,
-  database: 'PAPJobs',
-  user: 'PAPJAdmin',
-  password: 'YiUIY^&*65$%6*876598TYit7',
+  database: process.env.SQL_SERVER_DATABASE,
+  user: process.env.SQL_SERVER_USER,
+  password: process.env.SQL_SERVER_PASSWORD,
   options: {
     encrypt: true,
     trustServerCertificate: false,

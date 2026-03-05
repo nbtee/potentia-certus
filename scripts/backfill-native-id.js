@@ -11,15 +11,16 @@
  *   - SQL Server firewall must allow this IP
  */
 
+require('dotenv').config({ path: '.env.local' });
 const sql = require('mssql');
 const { createClient } = require('@supabase/supabase-js');
 
 const SQL_CONFIG = {
-  server: 'papjobsserver.database.windows.net',
+  server: process.env.SQL_SERVER_HOST,
   port: 1433,
-  database: 'PAPJobs',
-  user: 'PAPJAdmin',
-  password: 'YiUIY^&*65$%6*876598TYit7',
+  database: process.env.SQL_SERVER_DATABASE,
+  user: process.env.SQL_SERVER_USER,
+  password: process.env.SQL_SERVER_PASSWORD,
   options: {
     encrypt: true,
     trustServerCertificate: false,
@@ -29,11 +30,10 @@ const SQL_CONFIG = {
   },
 };
 
-const SUPABASE_URL = 'https://tappsgclmhepucyaclfd.supabase.co';
-const SUPABASE_SERVICE_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhcHBzZ2NsbWhlcHVjeWFjbGZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTExMjM0NiwiZXhwIjoyMDg2Njg4MzQ2fQ.XYRlCARuhjxyyd6C1FrXGufGLYNytOIhz-P4Hng_3qs';
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 const BATCH_SIZE = 500;
 
 function elapsed(start) {

@@ -1,19 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
-import type { LookupMaps } from './types';
+import type { LookupMaps } from './types.js';
 
 const PAGE_SIZE = 1000;
 
 function getServiceClient() {
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 }
 
-// Supabase untyped client returns `any` rows — this is intentional for generic table access
 async function fetchAll(table: string, columns: string) {
   const supabase = getServiceClient();
-  const allRows: Record<string, any>[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const allRows: any[] = [];
   let offset = 0;
   while (true) {
     const { data, error } = await supabase
