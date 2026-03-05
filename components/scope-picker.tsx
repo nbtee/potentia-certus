@@ -1,24 +1,27 @@
 'use client';
 
-import { useMemo } from 'react';
-import { Building2, ChevronDown, User, Users, Globe } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Building2, ChevronDown, User, UserPlus, Users, Globe, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { useFilters } from '@/lib/contexts/filter-context';
-import { useHierarchyTree } from '@/lib/hierarchy/use-hierarchy';
+import { useHierarchyTree, useConsultantMap } from '@/lib/hierarchy/use-hierarchy';
 import { buildScopeLabel, type HierarchyNode } from '@/lib/hierarchy/resolve-scope';
 import type { ScopePreset, ScopeSelection } from '@/lib/contexts/filter-context';
 
 export function ScopePicker() {
   const { filters, setScope, userHierarchyNodeId } = useFilters();
   const { data: tree = [], isLoading } = useHierarchyTree();
+  const { data: consultants = [], isLoading: consultantsLoading } = useConsultantMap();
 
   const { preset, selectedNodeIds } = filters.scope;
+  const [userSearch, setUserSearch] = useState('');
 
   // Build region → teams structure for the checkbox tree
   const regions = useMemo(() => {
@@ -33,10 +36,28 @@ export function ScopePicker() {
       }));
   }, [tree]);
 
-  const label = buildScopeLabel(preset, selectedNodeIds, tree);
+  // Sorted consultants for user picker
+  const sortedConsultants = useMemo(() => {
+    return [...consultants]
+      .filter((c) => c.display_name)
+      .sort((a, b) => (a.display_name ?? '').localeCompare(b.display_name ?? ''));
+  }, [consultants]);
+
+  // Filtered consultants based on search
+  const filteredConsultants = useMemo(() => {
+    if (!userSearch.trim()) return sortedConsultants;
+    const search = userSearch.toLowerCase();
+    return sortedConsultants.filter((c) =>
+      (c.display_name ?? '').toLowerCase().includes(search)
+    );
+  }, [sortedConsultants, userSearch]);
+
+  const label = buildScopeLabel(preset, selectedNodeIds, tree, consultants);
   const showTree = preset === 'national' || preset === 'custom';
+  const showUsers = preset === 'custom-users';
 
   const handlePreset = (p: ScopePreset) => {
+    setUserSearch('');
     setScope({ preset: p, selectedNodeIds: [] });
   };
 
@@ -59,6 +80,13 @@ export function ScopePicker() {
       newIds = selectedNodeIds.filter((id) => !removeSet.has(id));
     }
     setScope({ preset: 'custom', selectedNodeIds: newIds });
+  };
+
+  const handleUserToggle = (userId: string, checked: boolean) => {
+    const newIds = checked
+      ? [...selectedNodeIds, userId]
+      : selectedNodeIds.filter((id) => id !== userId);
+    setScope({ preset: 'custom-users', selectedNodeIds: newIds });
   };
 
   const isRegionChecked = (region: { teams: HierarchyNode[] }) => {
@@ -87,7 +115,7 @@ export function ScopePicker() {
       </PopoverTrigger>
       <PopoverContent className="w-[280px] bg-white p-0" align="start">
         {/* Preset buttons */}
-        <div className={`flex gap-1 p-3${showTree ? ' border-b border-gray-100' : ''}`}>
+        <div className={`flex flex-wrap gap-1 p-3${showTree || showUsers ? ' border-b border-gray-100' : ''}`}>
           <PresetButton
             icon={<User className="h-3.5 w-3.5" />}
             label="Me"
@@ -106,6 +134,12 @@ export function ScopePicker() {
             label="National"
             active={preset === 'national'}
             onClick={() => handlePreset('national')}
+          />
+          <PresetButton
+            icon={<UserPlus className="h-3.5 w-3.5" />}
+            label="Users"
+            active={preset === 'custom-users'}
+            onClick={() => handlePreset('custom-users')}
           />
         </div>
 
@@ -154,6 +188,43 @@ export function ScopePicker() {
                 </div>
               ))
             )}
+          </div>
+        )}
+
+        {/* User picker — shown for custom-users preset */}
+        {showUsers && (
+          <div className="p-3 space-y-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-400" />
+              <Input
+                placeholder="Search users..."
+                value={userSearch}
+                onChange={(e) => setUserSearch(e.target.value)}
+                className="h-8 pl-8 text-sm"
+              />
+            </div>
+            <div className="max-h-[250px] overflow-y-auto space-y-1">
+              {consultantsLoading ? (
+                <p className="text-sm text-gray-400">Loading users...</p>
+              ) : filteredConsultants.length === 0 ? (
+                <p className="text-sm text-gray-400 py-2">No users found</p>
+              ) : (
+                filteredConsultants.map((consultant) => (
+                  <label
+                    key={consultant.id}
+                    className="flex items-center gap-2 cursor-pointer rounded px-1 py-1 hover:bg-gray-50"
+                  >
+                    <Checkbox
+                      checked={selectedNodeIds.includes(consultant.id)}
+                      onCheckedChange={(checked) =>
+                        handleUserToggle(consultant.id, checked === true)
+                      }
+                    />
+                    <span className="text-sm text-gray-700">{consultant.display_name}</span>
+                  </label>
+                ))
+              )}
+            </div>
           </div>
         )}
       </PopoverContent>

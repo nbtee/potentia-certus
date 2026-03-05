@@ -132,9 +132,10 @@ export function getTeamSiblingIds(
  * Build a human-readable label for the current scope selection.
  */
 export function buildScopeLabel(
-  preset: 'self' | 'my-team' | 'custom' | 'national',
+  preset: 'self' | 'my-team' | 'custom' | 'custom-users' | 'national',
   selectedNodeIds: string[],
-  tree: HierarchyNode[]
+  tree: HierarchyNode[],
+  consultants?: ConsultantEntry[]
 ): string {
   switch (preset) {
     case 'self':
@@ -143,6 +144,14 @@ export function buildScopeLabel(
       return 'My Team';
     case 'national':
       return 'National';
+    case 'custom-users': {
+      if (selectedNodeIds.length === 0) return 'Users';
+      if (selectedNodeIds.length === 1 && consultants) {
+        const user = consultants.find((c) => c.id === selectedNodeIds[0]);
+        return user?.display_name ?? '1 user';
+      }
+      return `${selectedNodeIds.length} users`;
+    }
     case 'custom': {
       if (selectedNodeIds.length === 0) return 'Custom';
       if (selectedNodeIds.length === 1) {

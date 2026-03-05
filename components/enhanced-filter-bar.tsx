@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Calendar, ChevronDown, Filter, X } from 'lucide-react';
+import { Bookmark, BookmarkCheck, Calendar, ChevronDown, Filter, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -19,8 +19,10 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
-import { useFilters, calculateDateRange } from '@/lib/contexts/filter-context';
+import { useFilters, type ScopePreset } from '@/lib/contexts/filter-context';
 import { ScopePicker } from '@/components/scope-picker';
+import { FilterBookmarks } from '@/components/filter-bookmarks';
+import type { SavedFilter } from '@/lib/filters/saved-filters';
 
 const dateRanges = [
   { label: 'This Week', value: 'wtd' },
@@ -35,10 +37,18 @@ const dateRanges = [
 ];
 
 export function EnhancedFilterBar() {
-  const { filters, setDateRange, resetFilters } = useFilters();
+  const {
+    filters,
+    dateRangePreset,
+    setDateRange,
+    setDateRangePreset,
+    setScope,
+    resetFilters,
+    saveCurrentView,
+    clearSavedView,
+    hasSavedView,
+  } = useFilters();
 
-  // Local state only for UI controls that don't map directly to context
-  const [dateRangePreset, setDateRangePreset] = useState('30d');
   const [customStartDate, setCustomStartDate] = useState<Date | undefined>();
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
   const [isCustomOpen, setIsCustomOpen] = useState(false);
@@ -48,9 +58,6 @@ export function EnhancedFilterBar() {
 
   const handleDateRangeChange = (preset: string) => {
     setDateRangePreset(preset);
-    if (preset !== 'custom') {
-      setDateRange(calculateDateRange(preset));
-    }
   };
 
   const handleCustomDateApply = () => {
@@ -64,10 +71,18 @@ export function EnhancedFilterBar() {
   };
 
   const handleClearFilters = () => {
-    setDateRangePreset('30d');
     setCustomStartDate(undefined);
     setCustomEndDate(undefined);
     resetFilters();
+  };
+
+  const handleApplyBookmark = (bookmark: SavedFilter) => {
+    const { dateRangePreset: preset, scope } = bookmark.filter_state;
+    setDateRangePreset(preset);
+    setScope({
+      preset: scope.preset as ScopePreset,
+      selectedNodeIds: scope.selectedNodeIds ?? [],
+    });
   };
 
   return (
@@ -179,9 +194,34 @@ export function EnhancedFilterBar() {
           <ScopePicker />
         </div>
 
+        {/* Filter Bookmarks */}
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+            Saved
+          </label>
+          <FilterBookmarks
+            dateRangePreset={dateRangePreset}
+            onApplyBookmark={handleApplyBookmark}
+          />
+        </div>
+
         {/* Actions */}
         <div className="ml-auto flex items-center gap-2">
           <AnimatePresence>
+            {hasSavedView && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+              >
+                <Badge
+                  variant="secondary"
+                  className="bg-blue-50 text-blue-700 border-blue-200"
+                >
+                  Default View
+                </Badge>
+              </motion.div>
+            )}
             {hasActiveFilters && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
@@ -197,6 +237,33 @@ export function EnhancedFilterBar() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Save / Clear View */}
+          {hasSavedView ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearSavedView}
+              className="h-9 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+              title="Clear saved default view"
+            >
+              <BookmarkCheck className="mr-1 h-4 w-4" />
+              Clear Default
+            </Button>
+          ) : (
+            hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={saveCurrentView}
+                className="h-9 text-gray-600 hover:text-gray-900"
+                title="Save current filters as your default view"
+              >
+                <Bookmark className="mr-1 h-4 w-4" />
+                Save View
+              </Button>
+            )
+          )}
 
           {hasActiveFilters && (
             <Button

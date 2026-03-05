@@ -68,11 +68,9 @@ export function ChatMessage({ message, dashboardId, isLast }: ChatMessageProps) 
           }
 
           if (result.mode === 'answer') {
-            return (
-              <div key={invocation.toolCallId} className="rounded-lg border bg-white p-3 text-sm">
-                <p className="whitespace-pre-wrap text-gray-900">{result.formatted_result}</p>
-              </div>
-            );
+            // Hide intermediate data tables — the AI synthesizes all
+            // query results into its final message.content text
+            return null;
           }
 
           return null;

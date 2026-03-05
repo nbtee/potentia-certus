@@ -33,7 +33,7 @@ export interface DateRange {
   end: string;
 }
 
-export type ScopePreset = 'self' | 'my-team' | 'custom' | 'national';
+export type ScopePreset = 'self' | 'my-team' | 'custom' | 'custom-users' | 'national';
 
 export interface ScopeSelection {
   preset: ScopePreset;
@@ -45,11 +45,37 @@ export interface FilterState {
   scope: ScopeSelection;
 }
 
+interface SavedFilterView {
+  dateRangePreset: string;
+  scope: ScopeSelection;
+}
+
+const SAVED_FILTERS_KEY = 'potentia-saved-filters';
+
+function loadSavedView(): SavedFilterView | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(SAVED_FILTERS_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as SavedFilterView;
+  } catch {
+    return null;
+  }
+}
+
 interface FilterContextType {
   filters: FilterState;
+  dateRangePreset: string;
   setDateRange: (range: DateRange) => void;
+  setDateRangePreset: (preset: string) => void;
   setScope: (scope: ScopeSelection) => void;
   resetFilters: () => void;
+  /** Save current filters as the default view */
+  saveCurrentView: () => void;
+  /** Clear the saved default view */
+  clearSavedView: () => void;
+  /** Whether a saved view is active */
+  hasSavedView: boolean;
   /** Resolved consultant IDs for current scope. null = no filter (national). */
   resolvedConsultantIds: string[] | null;
   /** True while hierarchy/consultant data is loading */
@@ -149,20 +175,23 @@ export function FilterProvider({
   const { data: tree = [], isLoading: treeLoading } = useHierarchyTree();
   const { data: consultants = [], isLoading: consultantsLoading } = useConsultantMap();
 
-  // Initialize from URL params if available
+  // Initialize from URL params or defaults (never localStorage — that causes hydration mismatch)
+  const [hasSavedView, setHasSavedView] = useState(false);
+  const [dateRangePreset, setDateRangePresetState] = useState<string>('30d');
+
   const [filters, setFilters] = useState<FilterState>(() => {
     const urlDateStart = searchParams.get('dateStart');
     const urlDateEnd = searchParams.get('dateEnd');
     const urlScope = searchParams.get('scope') as ScopePreset | null;
     const urlNodes = searchParams.get('nodes');
 
-    const validPresets: ScopePreset[] = ['self', 'my-team', 'custom', 'national'];
+    const validPresets: ScopePreset[] = ['self', 'my-team', 'custom', 'custom-users', 'national'];
     const preset = validPresets.includes(urlScope as ScopePreset)
       ? (urlScope as ScopePreset)
       : DEFAULT_SCOPE.preset;
 
     const selectedNodeIds =
-      preset === 'custom' && urlNodes
+      (preset === 'custom' || preset === 'custom-users') && urlNodes
         ? urlNodes.split(',').filter(Boolean)
         : [];
 
@@ -174,6 +203,28 @@ export function FilterProvider({
       scope: { preset, selectedNodeIds },
     };
   });
+
+  // Load saved view from localStorage after hydration (only if no URL params override)
+  const savedViewApplied = useRef(false);
+  useEffect(() => {
+    if (savedViewApplied.current) return;
+    savedViewApplied.current = true;
+
+    const saved = loadSavedView();
+    if (!saved) return;
+
+    setHasSavedView(true);
+
+    // URL params take priority — only apply saved view if no URL scope/date params
+    const hasUrlParams = searchParams.get('dateStart') || searchParams.get('dateEnd') || searchParams.get('scope');
+    if (hasUrlParams) return;
+
+    setDateRangePresetState(saved.dateRangePreset);
+    setFilters({
+      dateRange: calculateDateRange(saved.dateRangePreset),
+      scope: saved.scope,
+    });
+  }, [searchParams]);
 
   // Sync URL params whenever filters change
   const isInitialMount = useRef(true);
@@ -189,7 +240,7 @@ export function FilterProvider({
     params.set('dateEnd', filters.dateRange.end);
     params.set('scope', filters.scope.preset);
 
-    if (filters.scope.preset === 'custom' && filters.scope.selectedNodeIds.length > 0) {
+    if ((filters.scope.preset === 'custom' || filters.scope.preset === 'custom-users') && filters.scope.selectedNodeIds.length > 0) {
       params.set('nodes', filters.scope.selectedNodeIds.join(','));
     } else {
       params.delete('nodes');
@@ -225,6 +276,12 @@ export function FilterProvider({
         return resolveConsultantIds(expandedIds, consultants);
       }
 
+      case 'custom-users': {
+        // selectedNodeIds contains user UUIDs directly (not hierarchy nodes)
+        if (selectedNodeIds.length === 0) return [userId]; // Fallback
+        return selectedNodeIds;
+      }
+
       case 'national':
         return null; // null = no filter
 
@@ -239,21 +296,48 @@ export function FilterProvider({
     setFilters((prev) => ({ ...prev, dateRange: range }));
   }, []);
 
+  const setDateRangePreset = useCallback((preset: string) => {
+    setDateRangePresetState(preset);
+    if (preset !== 'custom') {
+      setFilters((prev) => ({ ...prev, dateRange: calculateDateRange(preset) }));
+    }
+  }, []);
+
   const setScope = useCallback((scope: ScopeSelection) => {
     setFilters((prev) => ({ ...prev, scope }));
   }, []);
 
   const resetFilters = useCallback(() => {
+    setDateRangePresetState('30d');
     setFilters(DEFAULT_FILTERS);
+  }, []);
+
+  const saveCurrentView = useCallback(() => {
+    const view: SavedFilterView = {
+      dateRangePreset,
+      scope: filters.scope,
+    };
+    localStorage.setItem(SAVED_FILTERS_KEY, JSON.stringify(view));
+    setHasSavedView(true);
+  }, [dateRangePreset, filters.scope]);
+
+  const clearSavedView = useCallback(() => {
+    localStorage.removeItem(SAVED_FILTERS_KEY);
+    setHasSavedView(false);
   }, []);
 
   return (
     <FilterContext.Provider
       value={{
         filters,
+        dateRangePreset,
         setDateRange,
+        setDateRangePreset,
         setScope,
         resetFilters,
+        saveCurrentView,
+        clearSavedView,
+        hasSavedView,
         resolvedConsultantIds,
         isScopeLoading,
         userId,

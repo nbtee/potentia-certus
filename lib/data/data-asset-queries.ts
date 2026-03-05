@@ -83,6 +83,44 @@ function getSourceConfig(asset: DataAsset): { table: string; dateColumn: string 
 }
 
 // ============================================================================
+// Title Exclusion Helper
+// ============================================================================
+
+/**
+ * Fetch consultant IDs that should be excluded based on their title.
+ * Used by assets with `exclude_titles` metadata (e.g. strategic_referral_count
+ * excludes talent management users).
+ */
+async function getExcludedConsultantIds(
+  supabase: SupabaseClient,
+  asset: DataAsset
+): Promise<string[]> {
+  const meta = asset.metadata as Record<string, unknown>;
+  const excludeTitles = meta?.exclude_titles as string[] | undefined;
+  if (!excludeTitles || excludeTitles.length === 0) return [];
+
+  const { data } = await supabase
+    .from('user_profiles')
+    .select('id')
+    .in('title', excludeTitles);
+
+  return (data || []).map((u) => u.id);
+}
+
+/**
+ * Apply title-based exclusion filter to a query.
+ * If excludedIds is non-empty, filters out rows with those consultant_ids.
+ */
+function applyExcludeFilter<T extends { not: (col: string, op: string, val: string) => T }>(
+  query: T,
+  excludedIds: string[],
+  column: string = 'consultant_id'
+): T {
+  if (excludedIds.length === 0) return query;
+  return query.not(column, 'in', `(${excludedIds.join(',')})`);
+}
+
+// ============================================================================
 // Shared Consultant Filter Helper
 // ============================================================================
 
@@ -188,6 +226,9 @@ async function querySingleValue(
   const statusFilter = (asset.metadata as Record<string, unknown>)?.status_filter as string | string[] | undefined;
   const { table, dateColumn } = getSourceConfig(asset);
 
+  // Fetch excluded consultant IDs (e.g. talent managers for strategic referrals)
+  const excludedIds = await getExcludedConsultantIds(supabase, asset);
+
   // Build the query
   let query = supabase
     .from(table)
@@ -206,6 +247,7 @@ async function querySingleValue(
 
   query = applyDateRange(query, params.filters?.dateRange, dateColumn);
   query = applyConsultantFilter(query, params.filters);
+  query = applyExcludeFilter(query, excludedIds);
 
   const { count, error } = await query;
 
@@ -247,6 +289,7 @@ async function querySingleValue(
       end: toLocalDateString(prevEnd),
     }, dateColumn);
     prevQuery = applyConsultantFilter(prevQuery, params.filters);
+    prevQuery = applyExcludeFilter(prevQuery, excludedIds);
 
     const { count: prevCount } = await prevQuery;
 
@@ -288,6 +331,9 @@ async function queryCategorical(
     : table === 'placements' ? 'revenue_type'
     : 'activity_type';
 
+  // Fetch excluded consultant IDs (e.g. talent managers for strategic referrals)
+  const excludedIds = await getExcludedConsultantIds(supabase, asset);
+
   // Select with series column + join to user_profiles for display names
   let query = supabase
     .from(table)
@@ -300,6 +346,7 @@ async function queryCategorical(
 
   query = applyDateRange(query, params.filters?.dateRange, dateColumn);
   query = applyConsultantFilter(query, params.filters);
+  query = applyExcludeFilter(query, excludedIds);
 
   const data = await fetchAllRows(query) as any[];
 
@@ -461,6 +508,9 @@ async function queryTimeSeries(
   const activityTypes = (asset.metadata as Record<string, unknown>)?.activity_types as string[] ?? [];
   const { table, dateColumn } = getSourceConfig(asset);
 
+  // Fetch excluded consultant IDs (e.g. talent managers for strategic referrals)
+  const excludedIds = await getExcludedConsultantIds(supabase, asset);
+
   let query = supabase.from(table).select(dateColumn);
 
   // Apply activity_type filter only for activities table
@@ -470,6 +520,7 @@ async function queryTimeSeries(
 
   query = applyDateRange(query, params.filters?.dateRange, dateColumn);
   query = applyConsultantFilter(query, params.filters);
+  query = applyExcludeFilter(query, excludedIds);
 
   const data = await fetchAllRows(query) as any[];
 
@@ -851,6 +902,7 @@ export async function queryDrillDown(params: {
   const typedAsset = asset as DataAsset;
   const { table, dateColumn } = getSourceConfig(typedAsset);
   const activityTypes = (typedAsset.metadata as Record<string, unknown>)?.activity_types as string[] ?? [];
+  const excludedIds = await getExcludedConsultantIds(supabase, typedAsset);
   const offset = (params.page - 1) * params.pageSize;
 
   // Build select with PostgREST JOINs per table.
@@ -915,6 +967,7 @@ export async function queryDrillDown(params: {
 
   query = applyDateRange(query, params.filters?.dateRange, dateColumn);
   query = applyConsultantFilter(query, params.filters);
+  query = applyExcludeFilter(query, excludedIds);
   query = query.order(dateColumn, { ascending: false });
   query = query.range(offset, offset + params.pageSize - 1);
 
