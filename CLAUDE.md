@@ -30,6 +30,8 @@ Recruitment Data Intelligence Platform. Ingests activity data from Bullhorn ATS 
 
 ## Architecture
 
+**Two-tier data model:** Tier 1 = SQL Server (Bullhorn mirror, read-only source). Tier 2 = Supabase PostgreSQL (synced copies of Bullhorn data + platform-native data). Synced copies are never edited by the platform; platform-native data is never overwritten by ingestion. Both coexist in Tier 2.
+
 Three-library design: **Data Assets** (abstract measures) -> **Shape Contracts** (`single_value`, `categorical`, `time_series`, `funnel_stages`, `matrix`, `tabular`) -> **Widgets** (pure presentation). Widgets know nothing about the data source.
 
 - Dashboards persist in the database. AI builds once, DB serves ongoing (zero AI tokens for rendering).
@@ -74,9 +76,8 @@ npm run lint
 
 ## Key Database Tables
 
-**Core:** `org_hierarchy`, `user_profiles`, `business_rules`, `consultant_targets`, `data_assets`, `submittal_events`, `submission_status_log`, `placements`, `activities`
-**Dashboard:** `dashboards`, `dashboard_widgets`
-**Admin:** `context_documents`, `unmatched_terms`, `ingestion_runs`
+**Synced from SQL Server (Tier 1 copies):** `activities`, `job_orders`, `placements`, `candidates`, `job_submissions`
+**Platform-native:** `org_hierarchy`, `user_profiles`, `business_rules`, `consultant_targets`, `data_assets`, `submittal_events`, `submission_status_log`, `dashboards`, `dashboard_widgets`, `context_documents`, `unmatched_terms`, `ingestion_runs`
 **Security:** `private.audit_log`, `private.ai_rate_limits`, `user_visible_consultants`
 
 ## Org Hierarchy

@@ -4,7 +4,7 @@
 
 This document provides opinionated technology recommendations against the project specification, identifies hard limitations, and flags where the spec's ambitions require architectural trade-offs. Each brief is self-contained and decision-ready.
 
-**Revision Note:** Updated following requirements discussions to reflect the three-library architecture (Data Assets, Widgets, Layout Templates), the separation of data from presentation, resolved clarifications around AI orchestration, rules management, and the pipeline visualization approach. Further updated with the dashboard persistence model (AI builds once, database serves ongoing), two AI operating modes (Builder + Answer), context document strategy, Supabase MCP server usage, revised LLM cost model, and build phasing.
+**Revision Note:** Updated following requirements discussions to reflect the three-library architecture (Data Assets, Widgets, Layout Templates), the separation of data from presentation, resolved clarifications around AI orchestration, rules management, and the pipeline visualization approach. Further updated with the dashboard persistence model (AI builds once, database serves ongoing), two AI operating modes (Builder + Answer), context document strategy, Supabase MCP server usage, revised LLM cost model, and build phasing. Latest revision: established the two-tier data ownership model (SQL Server as Tier 1 read-only source, Supabase PostgreSQL as Tier 2 with synced copies + platform-native data) as a first-class architectural principle in Brief 1, with references threaded through Brief 2.
 
 ---
 
@@ -179,15 +179,37 @@ The AI re-enters the loop only when:
 - A user asks to modify an existing widget
 - A user asks a direct question (Answer Mode -- see Brief 5)
 
+### Data Ownership Model -- Two-Tier Architecture
+
+The platform operates across two database tiers. This is a foundational architectural principle that shapes every brief in this document.
+
+| Tier | System | Role | Ownership |
+|------|--------|------|-----------|
+| **Tier 1** | SQL Server (Bullhorn staging mirror) | Canonical source for all Bullhorn ATS data | Read-only from our perspective. Managed externally. |
+| **Tier 2** | Supabase PostgreSQL | Operational database for the platform | Full read/write. We own the schema, data, and policies. |
+
+**Why two tiers?** The SQL Server mirror contains authoritative Bullhorn data but cannot provide: Row Level Security scoped by org hierarchy, foreign key joins to platform-native tables, materialized views for aggregation, real-time subscriptions, or sub-100ms latency for dashboard rendering. Supabase provides all of these.
+
+**Tier 2 contains two categories of data:**
+
+| Category | Description | Examples |
+|----------|-------------|---------|
+| **Synced copies** (from Tier 1) | Bullhorn records replicated on a 5-15 min cadence. Upserted by Bullhorn ID. Never modified by the platform -- only refreshed from the source. | `activities`, `job_orders`, `placements`, `candidates`, `job_submissions` |
+| **Platform-native** | Data created and owned entirely by the platform. Does not exist in Bullhorn. | `dashboards`, `dashboard_widgets`, `business_rules`, `consultant_targets`, `submittal_events` (shadow records), `submission_status_log`, `data_assets`, `context_documents`, `user_profiles`, `org_hierarchy`, `audit_log`, `ingestion_runs` |
+
+**Key rule:** Synced copies are never edited by the platform. If a record changes in SQL Server, the next sync overwrites our copy. Platform-native data is never overwritten by ingestion. The two categories coexist in the same Supabase database but have completely different write patterns.
+
+This separation is implemented in Brief 2 (ingestion mechanics), enforced by RLS in Brief 10 (security), and reflected in the build phasing where database schema (Phase 0) and ingestion (Phase 2 Stream B) are distinct deliverables.
+
 ---
 
 ## Brief 2: Data Ingestion -- SQL Server Mirror
 
 ### Data Source
 
-**Clarified:** The platform does not connect to Bullhorn's REST API directly. A **staging SQL Server database** mirrors the Bullhorn data. This is our source of truth for ingestion.
+**Clarified:** The platform does not connect to Bullhorn's REST API directly. A **staging SQL Server database** mirrors the Bullhorn data. This is Tier 1 in our data ownership model (see Brief 1).
 
-This eliminates: OAuth flows, rate limits, webhook infrastructure, and Bullhorn API credential management. The ingestion problem becomes a straightforward SQL Server -> PostgreSQL sync.
+This eliminates: OAuth flows, rate limits, webhook infrastructure, and Bullhorn API credential management. The ingestion problem becomes a straightforward Tier 1 → Tier 2 sync: SQL Server records are replicated into Supabase PostgreSQL where they become **synced copies** -- queryable via RLS, joinable with platform-native tables, and cacheable in materialized views.
 
 ### Recommended Technology
 
