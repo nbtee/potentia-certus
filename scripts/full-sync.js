@@ -244,7 +244,8 @@ async function syncJobOrders(pool) {
   console.log('\n[3] Syncing job_orders...');
 
   const result = await pool.request().query(
-    `SELECT Id, Title, DateAdded, DateLastModified, ClientCorporationId, OwnerId, employmentType, Status
+    `SELECT Id, Title, DateAdded, DateLastModified, ClientCorporationId, OwnerId, employmentType, Status,
+            payRate, clientBillRate, salary
      FROM TargetJobsDB.JobOrders`
   );
 
@@ -266,6 +267,9 @@ async function syncJobOrders(pool) {
       status: r.Status || null,
       date_added: r.DateAdded ? new Date(r.DateAdded).toISOString() : null,
       date_last_modified: r.DateLastModified ? new Date(r.DateLastModified).toISOString() : null,
+      pay_rate: r.payRate ?? null,
+      bill_rate: r.clientBillRate ?? null,
+      salary: r.salary ?? null,
       synced_at: new Date().toISOString(),
     };
   });

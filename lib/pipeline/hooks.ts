@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getPipelineData, getPipelineDrillDown } from '@/app/pipeline/actions';
-import type { PipelineData, PipelineDrillDownRequest, PipelineDrillDownResult } from './types';
+import { getPipelineData, getPipelineDrillDown, getConsultantJobs } from '@/app/pipeline/actions';
+import type { PipelineData, PipelineDrillDownRequest, PipelineDrillDownResult, ConsultantJobsResult } from './types';
 
 export function usePipelineData(monthStart: string, consultantIds: string[] | null) {
   const sortedIds = consultantIds ? [...consultantIds].sort() : null;
@@ -67,6 +67,27 @@ export function usePipelineDrillDownData(
     pageSize: DRILL_DOWN_PAGE_SIZE,
     totalPages,
     setPage,
+    isLoading: query.isLoading,
+    error: query.error ? (query.error as Error).message : null,
+  };
+}
+
+export function useConsultantJobsData(consultantId: string | null, monthStart: string) {
+  const query = useQuery<ConsultantJobsResult>({
+    queryKey: ['consultant-jobs', consultantId, monthStart],
+    queryFn: async (): Promise<ConsultantJobsResult> => {
+      if (!consultantId) throw new Error('No consultant');
+      const result = await getConsultantJobs(consultantId, monthStart);
+      if (result.error) throw new Error(result.error);
+      return result.data!;
+    },
+    enabled: !!consultantId,
+    staleTime: 60 * 1000,
+  });
+
+  return {
+    rows: query.data?.rows ?? [],
+    totalRows: query.data?.totalRows ?? 0,
     isLoading: query.isLoading,
     error: query.error ? (query.error as Error).message : null,
   };

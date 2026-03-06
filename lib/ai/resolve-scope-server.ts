@@ -129,11 +129,12 @@ export async function resolveScope(
     return { consultantIds: null, label: `${scope} (no consultants found, showing national)` };
   }
 
-  // Try consultant name lookup
+  // Try consultant name lookup (active users only)
   const { data: matchedProfiles } = await supabase
     .from('user_profiles')
     .select('id, display_name')
     .ilike('display_name', `%${normalized}%`)
+    .is('deactivated_at', null)
     .limit(10);
 
   if (matchedProfiles && matchedProfiles.length > 0) {
@@ -163,11 +164,15 @@ async function fetchHierarchyTree(supabase: SupabaseClient): Promise<HierarchyNo
   return (data ?? []) as HierarchyNode[];
 }
 
+const TALENT_MGMT_TITLES = ['talent_manager', 'senior_talent_manager', 'talent_delivery_lead'];
+
 async function fetchConsultantEntries(supabase: SupabaseClient): Promise<ConsultantEntry[]> {
   const { data, error } = await supabase
     .from('user_profiles')
     .select('id, hierarchy_node_id, display_name')
-    .not('hierarchy_node_id', 'is', null);
+    .not('hierarchy_node_id', 'is', null)
+    .is('deactivated_at', null)
+    .not('title', 'in', `(${TALENT_MGMT_TITLES.join(',')})`);
 
   if (error) throw new Error(`Failed to fetch consultants: ${error.message}`);
   return (data ?? []) as ConsultantEntry[];

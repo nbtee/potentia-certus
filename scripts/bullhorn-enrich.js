@@ -469,24 +469,33 @@ async function enrichNotes(bh, pool) {
 
 async function enrichJobOrders(bh, pool) {
   const start = Date.now();
-  console.log('\n[3/5] Enriching JobOrders (status)...');
+  console.log('\n[3/5] Enriching JobOrders (status, payRate, clientBillRate, salary)...');
 
   await ensureColumn(pool, 'TargetJobsDB', 'JobOrders', 'Status', 'NVARCHAR(200)');
+  await ensureColumn(pool, 'TargetJobsDB', 'JobOrders', 'payRate', 'DECIMAL(10,2)');
+  await ensureColumn(pool, 'TargetJobsDB', 'JobOrders', 'clientBillRate', 'DECIMAL(10,2)');
+  await ensureColumn(pool, 'TargetJobsDB', 'JobOrders', 'salary', 'DECIMAL(12,2)');
 
   const idResult = await pool.request().query('SELECT Id FROM TargetJobsDB.JobOrders');
   const ids = idResult.recordset.map((r) => r.Id);
   console.log(`  ${ids.length} job orders to enrich`);
   if (ids.length === 0) return { updated: 0 };
 
-  const entities = await bhMultiFetch(bh, 'JobOrder', ids, ['id', 'status']);
+  const entities = await bhMultiFetch(bh, 'JobOrder', ids, ['id', 'status', 'payRate', 'clientBillRate', 'salary']);
 
   const rows = Array.from(entities.values()).map((e) => ({
     id: e.id,
     status: e.status ?? null,
+    payRate: e.payRate ?? null,
+    clientBillRate: e.clientBillRate ?? null,
+    salary: e.salary ?? null,
   }));
 
   const updated = await bulkUpdate(pool, 'TargetJobsDB.JobOrders', 'Id', rows, [
     { src: 'status', dest: 'Status', type: 'NVARCHAR' },
+    { src: 'payRate', dest: 'payRate', type: 'DECIMAL' },
+    { src: 'clientBillRate', dest: 'clientBillRate', type: 'DECIMAL' },
+    { src: 'salary', dest: 'salary', type: 'DECIMAL' },
   ]);
 
   console.log(`  ${updated} job orders updated (${elapsed(start)})`);

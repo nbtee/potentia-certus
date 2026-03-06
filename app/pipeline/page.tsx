@@ -64,11 +64,12 @@ async function resolveServerScope(
 
     if (teamNodeIds.size === 0) return [userId];
 
-    // Resolve team nodes to consultant UUIDs
+    // Resolve team nodes to consultant UUIDs (active users only)
     const { data: consultants } = await supabase
       .from('user_profiles')
       .select('id, hierarchy_node_id')
-      .not('hierarchy_node_id', 'is', null);
+      .not('hierarchy_node_id', 'is', null)
+      .is('deactivated_at', null);
 
     if (!consultants) return [userId];
 
@@ -83,7 +84,8 @@ async function resolveServerScope(
     const { data: consultants } = await supabase
       .from('user_profiles')
       .select('id')
-      .eq('hierarchy_node_id', userHierarchyNodeId);
+      .eq('hierarchy_node_id', userHierarchyNodeId)
+      .is('deactivated_at', null);
 
     return consultants?.map((c) => c.id) ?? [userId];
   }

@@ -12,6 +12,7 @@ import { PipelineTable } from './pipeline-table';
 import { BulletChartView } from './bullet-chart-view';
 import { PipelineDrillDownProvider } from '@/lib/pipeline/drill-down-context';
 import { PipelineDrillDownSheet } from './pipeline-drill-down-sheet';
+import { ConsultantJobsSheet } from './consultant-jobs-sheet';
 import type { TeamType, PipelineRow } from '@/lib/pipeline/types';
 
 interface PipelineContentProps {
@@ -144,6 +145,7 @@ export function PipelineContent({ initialConsultantIds }: PipelineContentProps) 
       </div>
 
       <PipelineDrillDownSheet monthStart={monthStart} />
+      <ConsultantJobsSheet monthStart={monthStart} />
     </PipelineDrillDownProvider>
   );
 }

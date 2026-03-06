@@ -38,12 +38,16 @@ export async function fetchHierarchyTree(): Promise<HierarchyNode[]> {
 /**
  * Fetch all consultants with their hierarchy_node_id.
  */
+const TALENT_MGMT_TITLES = ['talent_manager', 'senior_talent_manager', 'talent_delivery_lead'];
+
 export async function fetchConsultantMap(): Promise<ConsultantEntry[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from('user_profiles')
     .select('id, hierarchy_node_id, display_name')
-    .not('hierarchy_node_id', 'is', null);
+    .not('hierarchy_node_id', 'is', null)
+    .is('deactivated_at', null)
+    .not('title', 'in', `(${TALENT_MGMT_TITLES.join(',')})`);
 
   if (error) throw new Error(`Failed to fetch consultants: ${error.message}`);
   return data ?? [];

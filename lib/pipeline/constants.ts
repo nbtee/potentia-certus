@@ -100,8 +100,7 @@ export const PERM_DRILL_DOWN_COLUMNS: PipelineDrillDownColumn[] = [
   { key: 'consultantName', label: 'Consultant', type: 'text' },
   { key: 'stage', label: 'Stage', type: 'text' },
   { key: 'value', label: 'Est. Fee', type: 'currency' },
-  { key: 'probability', label: 'Prob', type: 'percent' },
-  { key: 'weightedValue', label: 'Weighted', type: 'currency' },
+  { key: 'probability', label: 'Conversion %', type: 'percent' },
 ];
 
 /** Drill-down column definitions for contract pipeline */
@@ -113,6 +112,5 @@ export const CONTRACT_DRILL_DOWN_COLUMNS: PipelineDrillDownColumn[] = [
   { key: 'consultantName', label: 'Consultant', type: 'text' },
   { key: 'stage', label: 'Stage', type: 'text' },
   { key: 'value', label: 'GP/hr', type: 'rate' },
-  { key: 'probability', label: 'Prob', type: 'percent' },
-  { key: 'weightedValue', label: 'Weighted', type: 'rate' },
+  { key: 'probability', label: 'Conversion %', type: 'percent' },
 ];

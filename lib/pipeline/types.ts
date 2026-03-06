@@ -86,3 +86,30 @@ export interface PipelineDrillDownResult {
   rows: PipelineDrillDownRow[];
   totalRows: number;
 }
+
+// --- Consultant Jobs Drill-Down ---
+
+export interface ConsultantJobsDrillDownRequest {
+  consultantId: string;
+  consultantName: string;
+  monthStart: string;
+}
+
+export interface ConsultantJobRow {
+  id: string;
+  title: string;
+  companyName: string;
+  employmentType: string;
+  status: string | null;
+  dateAdded: string | null;
+  dateLastModified: string | null;
+  activeSubs: number; // active pipeline submissions on this job
+  highestStage: string | null; // furthest pipeline stage reached
+  gpPerHour: number | null; // placement actual or job order estimate (bill_rate - pay_rate)
+  fee: number | null; // placement actual fee (perm jobs only, null if not yet placed)
+}
+
+export interface ConsultantJobsResult {
+  rows: ConsultantJobRow[];
+  totalRows: number;
+}

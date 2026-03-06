@@ -7,11 +7,13 @@ import {
   useCallback,
   type ReactNode,
 } from 'react';
-import type { PipelineDrillDownRequest } from './types';
+import type { PipelineDrillDownRequest, ConsultantJobsDrillDownRequest } from './types';
 
 interface PipelineDrillDownContextType {
   request: PipelineDrillDownRequest | null;
+  jobsRequest: ConsultantJobsDrillDownRequest | null;
   openDrillDown: (req: PipelineDrillDownRequest) => void;
+  openJobsDrillDown: (req: ConsultantJobsDrillDownRequest) => void;
   closeDrillDown: () => void;
 }
 
@@ -19,17 +21,25 @@ const PipelineDrillDownContext = createContext<PipelineDrillDownContextType | un
 
 export function PipelineDrillDownProvider({ children }: { children: ReactNode }) {
   const [request, setRequest] = useState<PipelineDrillDownRequest | null>(null);
+  const [jobsRequest, setJobsRequest] = useState<ConsultantJobsDrillDownRequest | null>(null);
 
   const openDrillDown = useCallback((req: PipelineDrillDownRequest) => {
+    setJobsRequest(null);
     setRequest(req);
+  }, []);
+
+  const openJobsDrillDown = useCallback((req: ConsultantJobsDrillDownRequest) => {
+    setRequest(null);
+    setJobsRequest(req);
   }, []);
 
   const closeDrillDown = useCallback(() => {
     setRequest(null);
+    setJobsRequest(null);
   }, []);
 
   return (
-    <PipelineDrillDownContext.Provider value={{ request, openDrillDown, closeDrillDown }}>
+    <PipelineDrillDownContext.Provider value={{ request, jobsRequest, openDrillDown, openJobsDrillDown, closeDrillDown }}>
       {children}
     </PipelineDrillDownContext.Provider>
   );

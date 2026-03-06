@@ -58,7 +58,8 @@ export function PipelineTable({ rows, stages, teamType, monthStart }: PipelineTa
                 {stage.label}
               </TableHead>
             ))}
-            <TableHead className="text-right text-xs w-[90px]">{revenueLabel}</TableHead>
+            <TableHead className="text-right text-xs w-[90px]">Confirmed</TableHead>
+            <TableHead className="text-right text-xs w-[90px]">Forecast</TableHead>
             <TableHead className="text-right text-xs w-[90px]">Target</TableHead>
             <TableHead className="text-right text-xs w-[90px]">Gap</TableHead>
             <TableHead className="text-center text-xs w-[80px]">% Target</TableHead>
@@ -73,6 +74,7 @@ export function PipelineTable({ rows, stages, teamType, monthStart }: PipelineTa
                 team={team}
                 stages={stages}
                 teamType={teamType}
+                monthStart={monthStart}
                 isExpanded={isExpanded}
                 onToggle={() => toggleTeam(team.id)}
               />
@@ -80,7 +82,7 @@ export function PipelineTable({ rows, stages, teamType, monthStart }: PipelineTa
           })}
           {rows.length === 0 && (
             <TableRow>
-              <TableCell colSpan={stages.length + 6} className="h-24 text-center text-gray-500">
+              <TableCell colSpan={stages.length + 7} className="h-24 text-center text-gray-500">
                 No pipeline data
               </TableCell>
             </TableRow>
@@ -95,16 +97,18 @@ function TeamBlock({
   team,
   stages,
   teamType,
+  monthStart,
   isExpanded,
   onToggle,
 }: {
   team: PipelineRow;
   stages: PipelineStage[];
   teamType: TeamType;
+  monthStart: string;
   isExpanded: boolean;
   onToggle: () => void;
 }) {
-  const { openDrillDown } = usePipelineDrillDown();
+  const { openDrillDown, openJobsDrillDown } = usePipelineDrillDown();
   const isContract = teamType === 'contract';
 
   // Collect all children's consultant IDs for team-level drill-down
@@ -113,14 +117,16 @@ function TeamBlock({
   const getMetrics = (row: PipelineRow) => {
     if (isContract) {
       return {
-        total: row.confirmedGpPerHour + row.weightedGpPerHour,
+        confirmed: row.confirmedGpPerHour,
+        forecast: row.confirmedGpPerHour + row.weightedGpPerHour,
         target: row.gpPerHourTarget,
         gap: row.gpPerHourGap,
         pct: row.gpPerHourPercentToTarget,
       };
     }
     return {
-      total: row.confirmedRevenue + row.weightedPipelineRevenue,
+      confirmed: row.confirmedRevenue,
+      forecast: row.confirmedRevenue + row.weightedPipelineRevenue,
       target: row.target,
       gap: row.gap,
       pct: row.percentToTarget,
@@ -176,7 +182,10 @@ function TeamBlock({
           </TableCell>
         ))}
         <TableCell className="text-right text-sm font-semibold text-gray-900">
-          {formatMetric(teamMetrics.total)}
+          {teamMetrics.confirmed > 0 ? formatMetric(teamMetrics.confirmed) : <span className="text-xs text-gray-300">-</span>}
+        </TableCell>
+        <TableCell className="text-right text-sm font-semibold text-gray-900">
+          {formatMetric(teamMetrics.forecast)}
         </TableCell>
         <TableCell className="text-right text-sm text-gray-700">
           {teamMetrics.target !== null ? formatMetric(teamMetrics.target) : '-'}
@@ -194,9 +203,21 @@ function TeamBlock({
         team.children?.map((consultant) => {
           const m = getMetrics(consultant);
           return (
-            <TableRow key={consultant.id} className="bg-white">
+            <TableRow
+              key={consultant.id}
+              className="bg-white cursor-pointer hover:bg-gray-50/80"
+              onClick={() =>
+                openJobsDrillDown({
+                  consultantId: consultant.id,
+                  consultantName: consultant.name,
+                  monthStart,
+                })
+              }
+            >
               <TableCell className="sticky left-0 bg-white z-10 pl-10">
-                <span className="text-sm text-gray-700">{consultant.name}</span>
+                <span className="text-sm text-gray-700 underline decoration-gray-300 underline-offset-2 hover:decoration-gray-500">
+                  {consultant.name}
+                </span>
               </TableCell>
               <JobCountCell row={consultant} />
               {stages.map((stage) => (
@@ -213,7 +234,10 @@ function TeamBlock({
                 </TableCell>
               ))}
               <TableCell className="text-right text-sm text-gray-700">
-                {formatMetric(m.total)}
+                {m.confirmed > 0 ? formatMetric(m.confirmed) : <span className="text-xs text-gray-300">-</span>}
+              </TableCell>
+              <TableCell className="text-right text-sm text-gray-700">
+                {formatMetric(m.forecast)}
               </TableCell>
               <TableCell className="text-right text-sm text-gray-500">
                 {m.target !== null ? formatMetric(m.target) : '-'}

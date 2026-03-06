@@ -22,12 +22,33 @@ import type {
   PipelineAverages,
   PipelineDrillDownRow,
   PipelineDrillDownResult,
+  ConsultantJobRow,
+  ConsultantJobsResult,
   TeamType,
 } from '@/lib/pipeline/types';
 
 type ActionResult<T> =
   | { data: T; error?: never }
   | { data?: never; error: string };
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+function validateMonthStart(v: string): boolean {
+  return DATE_RE.test(v) && !isNaN(Date.parse(v));
+}
+function clampPage(page: number, pageSize: number): { page: number; pageSize: number } {
+  return { page: Math.max(1, Math.floor(page)), pageSize: Math.min(200, Math.max(1, Math.floor(pageSize))) };
+}
+
+/**
+ * Computes permanent placement fee from fee_amount and candidate_salary.
+ * fee_amount <= 1 → percentage (e.g. 0.15 = 15%), multiply by salary.
+ * fee_amount > 1 → already a dollar amount, use directly.
+ */
+function calcPermFee(feeAmount: number, candidateSalary: number): number {
+  if (feeAmount <= 0) return 0;
+  if (feeAmount > 1) return feeAmount; // already dollars
+  return feeAmount * candidateSalary;   // percentage × salary
+}
 
 function calcContractRevenue(
   gpPerHour: number,
@@ -55,6 +76,8 @@ export async function getPipelineData(
   monthStart: string,
   consultantIds: string[] | null
 ): Promise<ActionResult<PipelineData>> {
+  if (!validateMonthStart(monthStart)) return { error: 'Invalid month' };
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -77,7 +100,7 @@ export async function getPipelineData(
     submissionsRaw,
     placementsRes,
     targetsRes,
-    jobOrdersRes,
+    jobOrdersRaw,
     profilesRes,
     hierarchyRes,
     histPlacementsRes,
@@ -98,7 +121,7 @@ export async function getPipelineData(
     // 3. Placements for this month (confirmed revenue)
     supabase
       .from('placements')
-      .select('consultant_id, revenue_type, fee_amount, gp_per_hour, start_date, end_date, placement_date, hours_per_day, working_days_per_week')
+      .select('consultant_id, job_order_id, revenue_type, fee_amount, candidate_salary, gp_per_hour, start_date, end_date, placement_date, hours_per_day, working_days_per_week')
       .gte('placement_date', monthStart)
       .lte('placement_date', monthEnd),
 
@@ -110,14 +133,17 @@ export async function getPipelineData(
       .eq('period_start', monthStart),
 
     // 5. Job orders (for employment_type + consultant ownership + active status)
-    supabase
-      .from('job_orders')
-      .select('id, employment_type, consultant_id, date_last_modified, status'),
+    // >1000 rows — must paginate
+    fetchAllRows(
+      supabase
+        .from('job_orders')
+        .select('id, employment_type, consultant_id, date_last_modified, status, pay_rate, bill_rate')
+    ),
 
-    // 6. User profiles
+    // 6. User profiles (include title to filter out non-consulting roles)
     supabase
       .from('user_profiles')
-      .select('id, display_name, first_name, last_name, hierarchy_node_id'),
+      .select('id, display_name, first_name, last_name, hierarchy_node_id, title'),
 
     // 7. Org hierarchy
     supabase
@@ -127,7 +153,7 @@ export async function getPipelineData(
     // 8. Historical placements for avg revenue (last 6 months)
     supabase
       .from('placements')
-      .select('revenue_type, fee_amount, gp_per_hour, start_date, end_date, hours_per_day, working_days_per_week')
+      .select('revenue_type, fee_amount, candidate_salary, gp_per_hour, start_date, end_date, hours_per_day, working_days_per_week')
       .gte('placement_date', histStart)
       .lt('placement_date', monthStart),
   ]);
@@ -135,7 +161,6 @@ export async function getPipelineData(
   if (rulesRes.error) return { error: rulesRes.error.message };
   if (placementsRes.error) return { error: placementsRes.error.message };
   if (targetsRes.error) return { error: targetsRes.error.message };
-  if (jobOrdersRes.error) return { error: jobOrdersRes.error.message };
   if (profilesRes.error) return { error: profilesRes.error.message };
   if (hierarchyRes.error) return { error: hierarchyRes.error.message };
   if (histPlacementsRes.error) return { error: histPlacementsRes.error.message };
@@ -158,26 +183,25 @@ export async function getPipelineData(
   }
   const stages = buildStages(probabilities);
 
-  // --- Build job order employment_type lookup + open jobs per consultant ---
+  // --- Build job order lookups ---
   const jobTypeMap = new Map<string, string>();
-  const CLOSED_JOB_STATUSES = new Set(['Closed', 'Archived', 'Cancelled', 'Placed']);
-  const openJobsByConsultant = new Map<string, Set<string>>(); // consultant_id → set of job UUIDs
-  for (const jo of jobOrdersRes.data ?? []) {
+  const OPEN_JOB_STATUSES = new Set(['Accepting Candidates', 'Open']);
+  const CLOSED_JOB_STATUSES = new Set(['Placed', 'Filled by Client', 'Filled by Competitor', 'Withdrawn', 'Unresponsive Client', 'Low chance of filling', 'No Longer Accepting Candidates']);
+  const closedJobIdSet = new Set<string>(); // jobs with terminal status — not active pipeline
+  const openJobsByConsultant = new Map<string, Set<string>>(); // consultant → open job UUIDs
+  const jobGpPerHourMap = new Map<string, number>(); // job UUID → GP/hr from bill_rate - pay_rate
+  const jobOrders = jobOrdersRaw as { id: string; employment_type: string | null; consultant_id: string | null; date_last_modified: string | null; status: string | null; pay_rate: number | null; bill_rate: number | null }[];
+  for (const jo of jobOrders) {
     if (jo.employment_type) jobTypeMap.set(jo.id, jo.employment_type);
-    // Track open jobs per consultant (status-based, fallback to 90-day proxy if no status)
+    if (jo.status && CLOSED_JOB_STATUSES.has(jo.status)) closedJobIdSet.add(jo.id);
+    // Build per-job GP/hr from actual rates (bill_rate - pay_rate)
+    if (jo.bill_rate != null && jo.pay_rate != null && jo.bill_rate > 0 && jo.pay_rate > 0) {
+      const gphr = jo.bill_rate - jo.pay_rate;
+      if (gphr > 0) jobGpPerHourMap.set(jo.id, gphr);
+    }
+    // Track jobs with open/accepting status per consultant
     if (jo.consultant_id) {
-      const status = (jo as Record<string, unknown>).status as string | null;
-      let isOpen = false;
-      if (status) {
-        isOpen = !CLOSED_JOB_STATUSES.has(status);
-      } else {
-        // Fallback for jobs without status: 90-day modification proxy
-        const modDate = jo.date_last_modified ? new Date(jo.date_last_modified) : null;
-        const ninetyDaysAgo = new Date();
-        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-        isOpen = modDate !== null && modDate >= ninetyDaysAgo;
-      }
-      if (isOpen) {
+      if (jo.status && OPEN_JOB_STATUSES.has(jo.status)) {
         if (!openJobsByConsultant.has(jo.consultant_id)) {
           openJobsByConsultant.set(jo.consultant_id, new Set());
         }
@@ -191,7 +215,7 @@ export async function getPipelineData(
   let gpPerHourRateSum = 0, gpPerHourRateCount = 0;
   for (const p of histPlacementsRes.data ?? []) {
     if (p.revenue_type === 'permanent') {
-      const fee = Number(p.fee_amount) || 0;
+      const fee = calcPermFee(Number(p.fee_amount) || 0, Number(p.candidate_salary) || 0);
       if (fee > 0) { permFeeSum += fee; permCount++; }
     } else {
       const gp = Number(p.gp_per_hour) || 0;
@@ -247,6 +271,8 @@ export async function getPipelineData(
     if (!activePipelineSet.has(sub.status)) continue;
     // Must be exit-free
     if (EXIT_STATUSES.has(sub.status) || PRE_PIPELINE_STATUSES.has(sub.status)) continue;
+    // Skip submissions on closed jobs — stale submission data on filled/withdrawn roles
+    if (sub.jobOrderId && closedJobIdSet.has(sub.jobOrderId)) continue;
     // Consultant filter
     if (!sub.consultantId) continue;
     if (consultantIdSet && !consultantIdSet.has(sub.consultantId)) continue;
@@ -268,7 +294,9 @@ export async function getPipelineData(
     const probability = probabilities[sub.status] ?? 0;
 
     if (empType === 'Contract') {
-      entry.weightedGpPerHour += avgGpPerHourRate * probability;
+      // Use actual job GP/hr (bill_rate - pay_rate) when available, fall back to historical average
+      const jobGphr = sub.jobOrderId ? jobGpPerHourMap.get(sub.jobOrderId) : undefined;
+      entry.weightedGpPerHour += (jobGphr ?? avgGpPerHourRate) * probability;
     } else {
       entry.weightedRevenue += avgPermFee * probability;
     }
@@ -278,18 +306,27 @@ export async function getPipelineData(
   const confirmedRevenue = new Map<string, number>();
   const confirmedGpPerHour = new Map<string, number>();
   const confirmedCounts = new Map<string, number>();
+  const placedJobsByConsultant = new Map<string, Set<string>>(); // consultant → job UUIDs placed this month
   for (const p of placementsRes.data ?? []) {
     if (!p.consultant_id) continue;
     if (consultantIdSet && !consultantIdSet.has(p.consultant_id)) continue;
 
     if (p.revenue_type === 'permanent') {
-      const amount = Number(p.fee_amount) || 0;
+      const amount = calcPermFee(Number(p.fee_amount) || 0, Number(p.candidate_salary) || 0);
       confirmedRevenue.set(p.consultant_id, (confirmedRevenue.get(p.consultant_id) ?? 0) + amount);
     } else {
       const gph = Number(p.gp_per_hour) || 0;
       confirmedGpPerHour.set(p.consultant_id, (confirmedGpPerHour.get(p.consultant_id) ?? 0) + gph);
     }
     confirmedCounts.set(p.consultant_id, (confirmedCounts.get(p.consultant_id) ?? 0) + 1);
+
+    // Track placed jobs this month
+    if (p.job_order_id) {
+      if (!placedJobsByConsultant.has(p.consultant_id)) {
+        placedJobsByConsultant.set(p.consultant_id, new Set());
+      }
+      placedJobsByConsultant.get(p.consultant_id)!.add(p.job_order_id);
+    }
   }
 
   // --- Build target lookups by revenue_mode ---
@@ -306,16 +343,23 @@ export async function getPipelineData(
   }
 
   // --- Build profile lookups ---
+  // Talent management titles excluded from pipeline (non-consulting roles)
+  const TALENT_MGMT_TITLES = new Set(['talent_manager', 'senior_talent_manager', 'talent_delivery_lead']);
   const profileMap = new Map<string, {
     name: string;
     hierarchyNodeId: string | null;
+    isTalentMgmt: boolean;
   }>();
   for (const p of profilesRes.data ?? []) {
     const name =
       p.display_name ||
       [p.first_name, p.last_name].filter(Boolean).join(' ') ||
       'Unknown';
-    profileMap.set(p.id, { name, hierarchyNodeId: p.hierarchy_node_id });
+    profileMap.set(p.id, {
+      name,
+      hierarchyNodeId: p.hierarchy_node_id,
+      isTalentMgmt: TALENT_MGMT_TITLES.has(p.title ?? ''),
+    });
   }
 
   // --- Build hierarchy lookup ---
@@ -326,6 +370,10 @@ export async function getPipelineData(
 
   // --- Assemble consultant-level rows ---
   const allConsultantIds = new Set<string>();
+  // When specific consultants are scoped, always include them (even with no data)
+  if (consultantIds) {
+    for (const id of consultantIds) allConsultantIds.add(id);
+  }
   for (const id of consultantPipeline.keys()) allConsultantIds.add(id);
   for (const id of confirmedRevenue.keys()) allConsultantIds.add(id);
   for (const id of confirmedGpPerHour.keys()) allConsultantIds.add(id);
@@ -335,14 +383,19 @@ export async function getPipelineData(
   for (const id of gpPerHourTargets.keys()) {
     if (!consultantIdSet || consultantIdSet.has(id)) allConsultantIds.add(id);
   }
-  // Also include consultants with open jobs in scope
+  // Also include consultants with open jobs or placed jobs this month
   for (const id of openJobsByConsultant.keys()) {
+    if (!consultantIdSet || consultantIdSet.has(id)) allConsultantIds.add(id);
+  }
+  for (const id of placedJobsByConsultant.keys()) {
     if (!consultantIdSet || consultantIdSet.has(id)) allConsultantIds.add(id);
   }
 
   const consultantRows: PipelineRow[] = [];
   for (const cid of allConsultantIds) {
     const profile = profileMap.get(cid);
+    // Skip talent management roles — only consulting roles in pipeline
+    if (profile?.isTalentMgmt) continue;
     const pipeline = consultantPipeline.get(cid);
     const placedCount = confirmedCounts.get(cid) ?? 0;
 
@@ -371,11 +424,14 @@ export async function getPipelineData(
     const hier = nodeId ? hierMap.get(nodeId) : null;
     const teamType = hier ? resolveTeamType(hier.name) : 'permanent';
 
-    // Job counts
-    const openJobSet = openJobsByConsultant.get(cid);
-    const openJobs = openJobSet?.size ?? 0;
-    const jobsWithSubs = pipeline?.jobOrderIds.size ?? 0;
-    const jobsWithoutSubs = Math.max(0, openJobs - jobsWithSubs);
+    // Job counts: open/accepting jobs + jobs with active submissions + jobs placed this month
+    const acceptingJobIds = openJobsByConsultant.get(cid) ?? new Set<string>();
+    const pipelineJobIds = pipeline?.jobOrderIds ?? new Set<string>();
+    const placedJobIds = placedJobsByConsultant.get(cid) ?? new Set<string>();
+    const allPipelineJobs = new Set([...acceptingJobIds, ...pipelineJobIds, ...placedJobIds]);
+    const openJobs = allPipelineJobs.size;
+    const jobsWithSubs = pipelineJobIds.size;
+    const jobsWithoutSubs = Math.max(0, acceptingJobIds.size - jobsWithSubs);
 
     consultantRows.push({
       id: cid,
@@ -539,7 +595,7 @@ export async function getPipelineData(
 
   } catch (err) {
     console.error('[Pipeline] UNCAUGHT ERROR:', err);
-    return { error: String(err) };
+    return { error: 'An unexpected error occurred loading pipeline data' };
   }
 }
 
@@ -555,6 +611,9 @@ export async function getPipelineDrillDown(
   page: number = 1,
   pageSize: number = 25
 ): Promise<ActionResult<PipelineDrillDownResult>> {
+  if (!validateMonthStart(monthStart)) return { error: 'Invalid month' };
+  ({ page, pageSize } = clampPage(page, pageSize));
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -583,14 +642,14 @@ export async function getPipelineDrillDown(
   const histStart = getMonthStart(navigateMonth(monthDate, -6));
   const { data: histPlacements } = await supabase
     .from('placements')
-    .select('revenue_type, fee_amount, gp_per_hour, start_date, end_date')
+    .select('revenue_type, fee_amount, candidate_salary, gp_per_hour, start_date, end_date')
     .gte('placement_date', histStart)
     .lt('placement_date', monthStart);
 
   let permFeeSum = 0, permCount = 0, gphrSum = 0, gphrCount = 0;
   for (const p of histPlacements ?? []) {
     if (p.revenue_type === 'permanent') {
-      const fee = Number(p.fee_amount) || 0;
+      const fee = calcPermFee(Number(p.fee_amount) || 0, Number(p.candidate_salary) || 0);
       if (fee > 0) { permFeeSum += fee; permCount++; }
     } else {
       const gp = Number(p.gp_per_hour) || 0;
@@ -654,7 +713,7 @@ export async function getPipelineDrillDown(
       id, bullhorn_submission_id, status_to, detected_at, consultant_id, candidate_id, job_order_id,
       user_profiles(display_name),
       candidates(first_name, last_name),
-      job_orders(title, employment_type, client_corporations(name))
+      job_orders(title, employment_type, pay_rate, bill_rate, client_corporations(name))
     `)
     .in('id', subIds);
 
@@ -680,7 +739,15 @@ export async function getPipelineDrillDown(
     const empType = (jobOrder?.employment_type as string) ?? 'Permanent';
     const probability = probabilities[r.status_to] ?? 0;
     const isContract = empType === 'Contract';
-    const value = isContract ? avgGpPerHourRate : avgPermFee;
+    // Use actual job GP/hr (bill_rate - pay_rate) when available
+    let value: number;
+    if (isContract) {
+      const billRate = Number(jobOrder?.bill_rate) || 0;
+      const payRate = Number(jobOrder?.pay_rate) || 0;
+      value = (billRate > 0 && payRate > 0) ? billRate - payRate : avgGpPerHourRate;
+    } else {
+      value = avgPermFee;
+    }
     const weightedValue = value * probability;
 
     return {
@@ -733,7 +800,7 @@ async function fetchPlacedDrillDown(
   const { data, error } = await supabase
     .from('placements')
     .select(`
-      id, placement_date, revenue_type, fee_amount, gp_per_hour, consultant_id, candidate_id,
+      id, placement_date, revenue_type, fee_amount, candidate_salary, gp_per_hour, consultant_id, candidate_id,
       user_profiles(display_name),
       candidates(first_name, last_name),
       job_orders(title, employment_type, client_corporations(name))
@@ -763,7 +830,9 @@ async function fetchPlacedDrillDown(
       : null;
 
     const isPerm = r.revenue_type === 'permanent';
-    const value = isPerm ? (Number(r.fee_amount) || 0) : (Number(r.gp_per_hour) || 0);
+    const value = isPerm
+      ? calcPermFee(Number(r.fee_amount) || 0, Number(r.candidate_salary) || 0)
+      : (Number(r.gp_per_hour) || 0);
 
     return {
       id: r.id,
@@ -777,6 +846,198 @@ async function fetchPlacedDrillDown(
       probability: 1.0,
       weightedValue: value,
       consultantName: (profile?.display_name as string) ?? 'Unknown',
+    };
+  });
+
+  return { data: { rows, totalRows } };
+}
+
+/**
+ * Fetches open job orders for a consultant, enriched with company name
+ * and active pipeline submission counts per job.
+ */
+export async function getConsultantJobs(
+  consultantId: string,
+  monthStart: string,
+  page: number = 1,
+  pageSize: number = 50
+): Promise<ActionResult<ConsultantJobsResult>> {
+  if (!validateMonthStart(monthStart)) return { error: 'Invalid month' };
+  ({ page, pageSize } = clampPage(page, pageSize));
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: 'Not authenticated' };
+
+  const monthDate = new Date(monthStart + 'T00:00:00');
+  const monthEnd = getMonthEnd(monthDate);
+
+  // 1. Fetch ALL job orders for this consultant (we'll filter to pipeline-relevant below)
+  const OPEN_STATUSES = new Set(['Accepting Candidates', 'Open']);
+  const [jobsRes, placementsRes] = await Promise.all([
+    supabase
+      .from('job_orders')
+      .select(`
+        id, title, employment_type, status, date_added, date_last_modified,
+        pay_rate, bill_rate,
+        client_corporations(name)
+      `)
+      .eq('consultant_id', consultantId)
+      .order('date_last_modified', { ascending: false }),
+    // Placements this month by this consultant (with actual rates)
+    supabase
+      .from('placements')
+      .select('job_order_id, revenue_type, fee_amount, candidate_salary, gp_per_hour')
+      .eq('consultant_id', consultantId)
+      .gte('placement_date', monthStart)
+      .lte('placement_date', monthEnd),
+  ]);
+
+  if (jobsRes.error) return { error: jobsRes.error.message };
+  const jobs = jobsRes.data ?? [];
+  if (jobs.length === 0) {
+    return { data: { rows: [], totalRows: 0 } };
+  }
+
+  // Build placed job IDs + actual placement rates (locked-in after negotiation)
+  const placedJobIds = new Set<string>();
+  const placementGpPerHour = new Map<string, number>(); // job UUID → actual GP/hr from placement
+  const placementFee = new Map<string, number>(); // job UUID → actual fee from placement
+  for (const p of placementsRes.data ?? []) {
+    if (!p.job_order_id) continue;
+    placedJobIds.add(p.job_order_id);
+    if (p.revenue_type === 'contract') {
+      const gph = Number(p.gp_per_hour) || 0;
+      if (gph > 0) placementGpPerHour.set(p.job_order_id, gph);
+    } else {
+      const fee = calcPermFee(Number(p.fee_amount) || 0, Number(p.candidate_salary) || 0);
+      if (fee > 0) placementFee.set(p.job_order_id, fee);
+    }
+  }
+
+  const jobIds = jobs.map((j) => j.id);
+
+  // 2. Fetch ALL submissions for these jobs (from any consultant — for display counts)
+  const allSubs = await fetchAllRows(
+    supabase
+      .from('submission_status_log')
+      .select('bullhorn_submission_id, status_to, detected_at, job_order_id, consultant_id')
+      .in('job_order_id', jobIds)
+  ) as {
+    bullhorn_submission_id: number;
+    status_to: string;
+    detected_at: string;
+    job_order_id: string | null;
+    consultant_id: string | null;
+  }[];
+
+  // Deduplicate to latest status per submission
+  const latestBySubmission = new Map<number, { status: string; jobOrderId: string | null; detectedAt: string; consultantId: string | null }>();
+  for (const s of allSubs) {
+    const existing = latestBySubmission.get(s.bullhorn_submission_id);
+    if (!existing || s.detected_at > existing.detectedAt) {
+      latestBySubmission.set(s.bullhorn_submission_id, {
+        status: s.status_to,
+        jobOrderId: s.job_order_id,
+        detectedAt: s.detected_at,
+        consultantId: s.consultant_id,
+      });
+    }
+  }
+
+  // Jobs with terminal status — only qualify for drill-down via placements table (this month)
+  const CLOSED_JOB_STATUSES = new Set(['Placed', 'Filled by Client', 'Filled by Competitor', 'Withdrawn', 'Unresponsive Client', 'Low chance of filling', 'No Longer Accepting Candidates']);
+  const closedJobIds = new Set<string>();
+  for (const j of jobs) {
+    if (j.status && CLOSED_JOB_STATUSES.has(j.status)) closedJobIds.add(j.id);
+  }
+
+  // Exclude "Placed" — placed jobs are tracked via placements table for the month
+  const activePipelineSet = new Set<string>(ACTIVE_PIPELINE_STATUSES.filter((s) => s !== 'Placed'));
+  const stageOrder = new Map<string, number>(ACTIVE_PIPELINE_STATUSES.map((s, i) => [s, i]));
+
+  // Track two things separately:
+  // a) Which jobs qualify for the drill-down (this consultant's own subs only — matches pipeline logic)
+  // b) Display counts per job (all consultants' subs — for sub count and highest stage display)
+  const jobsQualifiedBySubs = new Set<string>(); // for filtering (consultant's own subs)
+  const jobSubCounts = new Map<string, number>(); // for display (all subs)
+  const jobHighestStage = new Map<string, string>(); // for display (all subs)
+
+  for (const [, sub] of latestBySubmission) {
+    if (!sub.jobOrderId || !activePipelineSet.has(sub.status)) continue;
+    if (EXIT_STATUSES.has(sub.status) || PRE_PIPELINE_STATUSES.has(sub.status)) continue;
+
+    // Display: count all active subs and track highest stage
+    jobSubCounts.set(sub.jobOrderId, (jobSubCounts.get(sub.jobOrderId) ?? 0) + 1);
+    const currentHighest = jobHighestStage.get(sub.jobOrderId);
+    const currentOrder = currentHighest ? (stageOrder.get(currentHighest) ?? -1) : -1;
+    const newOrder = stageOrder.get(sub.status) ?? -1;
+    if (newOrder > currentOrder) {
+      jobHighestStage.set(sub.jobOrderId, sub.status);
+    }
+
+    // Qualification: only this consultant's subs determine if job is in the pipeline
+    // But skip closed jobs — those only qualify via placements table for this month
+    if (sub.consultantId === consultantId && !closedJobIds.has(sub.jobOrderId)) {
+      jobsQualifiedBySubs.add(sub.jobOrderId);
+    }
+  }
+
+  // Mark placed-this-month jobs with "Placed" as highest stage
+  for (const jobId of placedJobIds) {
+    if (!jobHighestStage.has(jobId)) {
+      jobHighestStage.set(jobId, 'Placed');
+    }
+  }
+
+  // 3. Filter to pipeline-relevant jobs (matching pipeline table logic):
+  //    - Open/Accepting Candidates status, OR
+  //    - This consultant has active pipeline submissions (excluding Placed), OR
+  //    - Was placed this month
+  const pipelineJobs = jobs.filter((j) =>
+    OPEN_STATUSES.has(j.status ?? '') ||
+    jobsQualifiedBySubs.has(j.id) ||
+    placedJobIds.has(j.id)
+  );
+
+  // 4. Build result rows
+  const totalRows = pipelineJobs.length;
+  const startIdx = (page - 1) * pageSize;
+  const pageJobs = pipelineJobs.slice(startIdx, startIdx + pageSize);
+
+  const rows: ConsultantJobRow[] = pageJobs.map((j) => {
+    const clientCorp = Array.isArray(j.client_corporations)
+      ? (j.client_corporations as Record<string, unknown>[])[0]
+      : j.client_corporations as Record<string, unknown> | null;
+
+    // GP/hr: use placement actuals for placed jobs, otherwise job order estimate
+    let gpPerHour: number | null = null;
+    if (placementGpPerHour.has(j.id)) {
+      gpPerHour = placementGpPerHour.get(j.id)!;
+    } else {
+      const billRate = Number(j.bill_rate) || 0;
+      const payRate = Number(j.pay_rate) || 0;
+      gpPerHour = (billRate > 0 && payRate > 0) ? billRate - payRate : null;
+    }
+
+    // Fee: use placement actuals for placed perm jobs
+    const fee = placementFee.get(j.id) ?? null;
+
+    return {
+      id: j.id,
+      title: j.title ?? 'Untitled',
+      companyName: (clientCorp?.name as string) ?? 'Unknown',
+      employmentType: j.employment_type ?? 'Unknown',
+      status: j.status,
+      dateAdded: j.date_added,
+      dateLastModified: j.date_last_modified,
+      activeSubs: jobSubCounts.get(j.id) ?? 0,
+      highestStage: jobHighestStage.get(j.id) ?? null,
+      gpPerHour,
+      fee,
     };
   });
 

@@ -256,7 +256,8 @@ export async function syncJobOrders(
   const request = pool.request();
 
   let query = `
-    SELECT Id, Title, DateAdded, DateLastModified, ClientCorporationId, OwnerId, employmentType, Status
+    SELECT Id, Title, DateAdded, DateLastModified, ClientCorporationId, OwnerId, employmentType, Status,
+           payRate, clientBillRate, salary
     FROM TargetJobsDB.JobOrders`;
 
   if (since) {
@@ -289,6 +290,9 @@ export async function syncJobOrders(
         ? new Date(r.DateLastModified as string).toISOString()
         : null,
       status: (r.Status as string) || null,
+      pay_rate: (r.payRate as number) ?? null,
+      bill_rate: (r.clientBillRate as number) ?? null,
+      salary: (r.salary as number) ?? null,
       synced_at: new Date().toISOString(),
     };
   });
