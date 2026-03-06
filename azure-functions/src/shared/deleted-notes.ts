@@ -4,30 +4,27 @@ import { getServiceClient } from './lookups.js';
 
 const BATCH_SIZE = 500;
 
+/**
+ * Sync deleted notes by scanning ALL isDeleted=1 IDs from SQL Server
+ * and removing matching activities from Supabase.
+ *
+ * We always scan all deleted IDs (no date filter) because a note can be
+ * deleted long after its dateAdded, and Notes lacks a reliable modification
+ * timestamp we can filter on.
+ *
+ * This is safe because:
+ * - We only SELECT Id (lightweight)
+ * - Deletes are idempotent (deleting non-existent rows is a no-op)
+ * - The deleted set is typically small relative to total notes
+ */
 export async function syncDeletedNotes(
   pool: sql.ConnectionPool,
-  since: string | null
+  _since: string | null
 ): Promise<SyncResult> {
   const start = Date.now();
 
-  if (!since) {
-    // Full sync handles deletes by only importing isDeleted=0; skip
-    return {
-      table: 'activities (deletes)',
-      processed: 0,
-      inserted: 0,
-      errors: 0,
-      duration_ms: 0,
-    };
-  }
-
-  const request = pool.request();
-  request.input('since', since);
-
-  const result = await request.query(`
-    SELECT Id
-    FROM TargetJobsDB.Notes
-    WHERE isDeleted = 1 AND dateAdded > @since
+  const result = await pool.request().query(`
+    SELECT Id FROM TargetJobsDB.Notes WHERE isDeleted = 1
   `);
 
   const bullhornIds = result.recordset.map(
@@ -65,7 +62,7 @@ export async function syncDeletedNotes(
   }
 
   console.log(
-    `  deleted notes: ${deleted} removed, ${errors} errors (${Date.now() - start}ms)`
+    `  deleted notes: ${deleted} removed from ${bullhornIds.length} deleted IDs, ${errors} errors (${Date.now() - start}ms)`
   );
 
   return {

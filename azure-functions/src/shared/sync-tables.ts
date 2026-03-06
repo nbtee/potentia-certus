@@ -48,7 +48,7 @@ export async function syncActivities(
   const request = pool.request();
 
   let query = `
-    SELECT Id, action, dateAdded, CorporateUserId, personReferenceId, JobOrderId
+    SELECT Id, action, dateAdded, CorporateUserId, personReferenceId, JobOrderId, comments
     FROM TargetJobsDB.Notes
     WHERE isDeleted = 0`;
 
@@ -66,6 +66,7 @@ export async function syncActivities(
     candidate_id: lookups.candidates.get(r.personReferenceId as number) || null,
     job_order_id: lookups.jobOrders.get(r.JobOrderId as number) || null,
     activity_date: new Date(r.dateAdded as string).toISOString(),
+    notes: (r.comments as string) || null,
     synced_at: new Date().toISOString(),
   }));
 
@@ -159,7 +160,7 @@ export async function syncPlacements(
   let query = `
     SELECT Id, OwnerId, CandidateId, DateAdded, Status, PlacementPutDate,
            DateBegin, EmploymentType, JobOrderId, Margin, SalaryUnit,
-           DateEnd, fee, payRate, salary
+           DateEnd, fee, payRate, salary, hoursPerDay, customInt2
     FROM TargetJobsDB.Placements`;
 
   if (since) {
@@ -206,7 +207,7 @@ export async function syncPlacements(
 
     return {
       bullhorn_id: r.Id,
-      consultant_id: lookups.consultantsByNativeId.get(r.OwnerId as number) || null,
+      consultant_id: lookups.consultants.get(r.OwnerId as number) || null,
       candidate_id: lookups.candidates.get(r.CandidateId as number) || null,
       job_order_id: lookups.jobOrders.get(r.JobOrderId as number) || null,
       revenue_type: revenueType,
@@ -216,6 +217,8 @@ export async function syncPlacements(
       start_date: dateBegin,
       end_date: dateEnd,
       placement_date: placementDate,
+      hours_per_day: (r.hoursPerDay as number) ?? null,
+      working_days_per_week: (r.customInt2 as number) ?? null,
       metadata: {
         status: r.Status,
         salary_unit: r.SalaryUnit,
@@ -253,7 +256,7 @@ export async function syncJobOrders(
   const request = pool.request();
 
   let query = `
-    SELECT Id, Title, DateAdded, DateLastModified, ClientCorporationId, OwnerId, employmentType
+    SELECT Id, Title, DateAdded, DateLastModified, ClientCorporationId, OwnerId, employmentType, Status
     FROM TargetJobsDB.JobOrders`;
 
   if (since) {
@@ -275,7 +278,7 @@ export async function syncJobOrders(
     return {
       bullhorn_id: r.Id,
       title: (r.Title as string) || 'Untitled',
-      consultant_id: lookups.consultantsByNativeId.get(r.OwnerId as number) || null,
+      consultant_id: lookups.consultants.get(r.OwnerId as number) || null,
       client_corporation_id:
         lookups.clientCorporations.get(r.ClientCorporationId as number) || null,
       employment_type: empType,
@@ -285,6 +288,7 @@ export async function syncJobOrders(
       date_last_modified: r.DateLastModified
         ? new Date(r.DateLastModified as string).toISOString()
         : null,
+      status: (r.Status as string) || null,
       synced_at: new Date().toISOString(),
     };
   });

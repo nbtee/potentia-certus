@@ -8,16 +8,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AdminPageHeader } from '@/components/admin/admin-page-header';
 import { AdminDataTable } from '@/components/admin/admin-data-table';
 import { useIngestionStatus, useIngestionRuns } from '@/lib/admin/hooks';
-import { triggerManualSync } from './actions';
+import { triggerManualSync, triggerFullResync } from './actions';
 import type { IngestionRun } from '@/lib/admin/types';
 import { type ColumnDef } from '@tanstack/react-table';
-import { RefreshCw, Database } from 'lucide-react';
+import { RefreshCw, Database, RotateCcw } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
   completed: 'bg-green-100 text-green-800',
   running: 'bg-teal-100 text-teal-800',
   failed: 'bg-red-100 text-red-800',
   partial: 'bg-amber-100 text-amber-800',
+  stale: 'bg-gray-100 text-gray-800',
 };
 
 export function IngestionDashboard() {
@@ -25,9 +26,21 @@ export function IngestionDashboard() {
   const { data: runs, isLoading: runsLoading } = useIngestionRuns();
   const [syncing, setSyncing] = useState<string | null>(null);
 
-  async function handleSync(sourceTable: string) {
-    setSyncing(sourceTable);
-    await triggerManualSync(sourceTable);
+  const [syncError, setSyncError] = useState<string | null>(null);
+
+  async function handleSync(targetTable: string) {
+    setSyncing(targetTable);
+    setSyncError(null);
+    const result = await triggerManualSync([targetTable]);
+    if (result.error) setSyncError(result.error);
+    setSyncing(null);
+  }
+
+  async function handleFullResync() {
+    setSyncing('all');
+    setSyncError(null);
+    const result = await triggerFullResync();
+    if (result.error) setSyncError(result.error);
     setSyncing(null);
   }
 
@@ -117,8 +130,24 @@ export function IngestionDashboard() {
     <div>
       <AdminPageHeader
         title="Ingestion Health"
-        description="SQL Server sync status. Actual Edge Function sync requires Stage D credentials."
-      />
+        description="SQL Server sync status. Azure Function runs every 15 minutes with per-table watermarking."
+      >
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={syncing !== null}
+          onClick={handleFullResync}
+        >
+          <RotateCcw className={`mr-2 h-3.5 w-3.5 ${syncing === 'all' ? 'animate-spin' : ''}`} />
+          {syncing === 'all' ? 'Re-syncing...' : 'Full Re-sync'}
+        </Button>
+      </AdminPageHeader>
+
+      {syncError && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {syncError}
+        </div>
+      )}
 
       {/* Status cards */}
       {statusLoading ? (
@@ -130,12 +159,12 @@ export function IngestionDashboard() {
       ) : (
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {(status ?? []).map((run) => (
-            <Card key={run.source_table}>
+            <Card key={run.target_table}>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <div className="flex items-center gap-2">
                   <Database className="h-4 w-4 text-gray-500" />
                   <CardTitle className="text-sm font-medium">
-                    {run.source_table}
+                    {run.target_table}
                   </CardTitle>
                 </div>
                 <Badge variant="secondary" className={statusColors[run.status] ?? ''}>
@@ -161,11 +190,11 @@ export function IngestionDashboard() {
                   variant="outline"
                   size="sm"
                   className="mt-3 w-full"
-                  disabled={syncing === run.source_table}
-                  onClick={() => handleSync(run.source_table)}
+                  disabled={syncing !== null}
+                  onClick={() => handleSync(run.target_table)}
                 >
-                  <RefreshCw className={`mr-2 h-3.5 w-3.5 ${syncing === run.source_table ? 'animate-spin' : ''}`} />
-                  {syncing === run.source_table ? 'Syncing...' : 'Sync Now'}
+                  <RefreshCw className={`mr-2 h-3.5 w-3.5 ${syncing === run.target_table ? 'animate-spin' : ''}`} />
+                  {syncing === run.target_table ? 'Syncing...' : 'Sync Now'}
                 </Button>
               </CardContent>
             </Card>

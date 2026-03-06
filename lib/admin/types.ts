@@ -111,14 +111,14 @@ export interface UnmatchedTerm {
 
 export interface IngestionRun {
   id: string;
-  run_type: 'full_sync' | 'incremental_sync' | 'reconciliation';
+  run_type: 'full_sync' | 'incremental_sync' | 'reconciliation' | 'user_sync';
   source_table: string;
   target_table: string;
   records_processed: number;
   records_inserted: number;
   records_updated: number;
   records_failed: number;
-  status: 'running' | 'completed' | 'failed' | 'partial';
+  status: 'running' | 'completed' | 'failed' | 'partial' | 'stale';
   error_message: string | null;
   started_at: string;
   completed_at: string | null;

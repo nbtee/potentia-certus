@@ -198,9 +198,13 @@ async function syncCandidates(pool) {
   const start = Date.now();
   console.log('\n[2] Syncing candidates (from Persons)...');
 
+  // Join with ClientContactCorporations to get company_name for client contacts
   const result = await pool.request().query(
-    `SELECT id, firstName, lastName, address1, address2, city, state, zip, JobTitle, _subtype
-     FROM TargetJobsDB.Persons`
+    `SELECT p.id, p.firstName, p.lastName, p.address1, p.address2, p.city, p.state, p.zip,
+            p.JobTitle, p._subtype, cc.ClientCorporationId, corp.Name AS CompanyName
+     FROM TargetJobsDB.Persons p
+     LEFT JOIN TargetJobsDB.ClientContactCorporations cc ON p.id = cc.ClientContactId
+     LEFT JOIN TargetJobsDB.ClientCorporations corp ON cc.ClientCorporationId = corp.Id`
   );
 
   const rows = result.recordset.map((r) => ({
@@ -213,7 +217,7 @@ async function syncCandidates(pool) {
     state: r.state || null,
     zip: r.zip || null,
     occupation: r.JobTitle || null,
-    // company_name: not available in mirror — need ClientContact→ClientCorporation link
+    company_name: r.CompanyName || null,
     synced_at: new Date().toISOString(),
   }));
 
@@ -240,7 +244,7 @@ async function syncJobOrders(pool) {
   console.log('\n[3] Syncing job_orders...');
 
   const result = await pool.request().query(
-    `SELECT Id, Title, DateAdded, DateLastModified, ClientCorporationId, OwnerId, employmentType
+    `SELECT Id, Title, DateAdded, DateLastModified, ClientCorporationId, OwnerId, employmentType, Status
      FROM TargetJobsDB.JobOrders`
   );
 
@@ -259,6 +263,7 @@ async function syncJobOrders(pool) {
       consultant_id: lookups.consultants.get(r.OwnerId) || null,
       client_corporation_id: lookups.clientCorporations.get(r.ClientCorporationId) || null,
       employment_type: empType,
+      status: r.Status || null,
       date_added: r.DateAdded ? new Date(r.DateAdded).toISOString() : null,
       date_last_modified: r.DateLastModified ? new Date(r.DateLastModified).toISOString() : null,
       synced_at: new Date().toISOString(),
@@ -288,7 +293,7 @@ async function syncActivities(pool) {
   console.log('\n[4] Syncing activities (from Notes)...');
 
   const result = await pool.request().query(
-    `SELECT Id, action, dateAdded, CorporateUserId, personReferenceId, JobOrderId
+    `SELECT Id, action, dateAdded, CorporateUserId, personReferenceId, JobOrderId, comments
      FROM TargetJobsDB.Notes
      WHERE isDeleted = 0`
   );
@@ -296,7 +301,7 @@ async function syncActivities(pool) {
   const rows = result.recordset.map((r) => ({
     bullhorn_id: r.Id,
     activity_type: r.action || 'Unknown',
-    // notes: comments column not available in SQL Server mirror
+    notes: r.comments || null,
     consultant_id: lookups.consultants.get(r.CorporateUserId) || null,
     candidate_id: lookups.candidates.get(r.personReferenceId) || null,
     job_order_id: lookups.jobOrders.get(r.JobOrderId) || null,
@@ -329,7 +334,7 @@ async function syncPlacements(pool) {
   const result = await pool.request().query(
     `SELECT Id, OwnerId, CandidateId, DateAdded, Status, PlacementPutDate,
             DateBegin, EmploymentType, JobOrderId, Margin, SalaryUnit,
-            DateEnd, fee, payRate, salary
+            DateEnd, fee, payRate, salary, hoursPerDay, customInt2
      FROM TargetJobsDB.Placements`
   );
 
@@ -387,6 +392,8 @@ async function syncPlacements(pool) {
       fee_amount: feeAmount,
       gp_per_hour: gpPerHour,
       candidate_salary: r.salary || null,
+      hours_per_day: r.hoursPerDay ?? null,
+      working_days_per_week: r.customInt2 ?? null,
       start_date: dateBegin,
       end_date: dateEnd,
       placement_date: placementDate,
@@ -455,6 +462,36 @@ async function syncSubmissionStatusLog(pool) {
 }
 
 // ============================================================================
+// 7. User Active Status (from CorporateUsers.Enabled)
+// ============================================================================
+
+async function syncUserActiveStatus(pool) {
+  const start = Date.now();
+  console.log('\n[7] Syncing user active status (from CorporateUsers.Enabled)...');
+
+  const result = await pool.request().query(
+    `SELECT Id, Enabled FROM TargetJobsDB.CorporateUsers WHERE Enabled IS NOT NULL`
+  );
+
+  let updated = 0;
+  for (const r of result.recordset) {
+    const userId = lookups.consultants.get(r.Id);
+    if (!userId) continue;
+
+    const isActive = r.Enabled === true || r.Enabled === 1;
+    const { error } = await supabase
+      .from('user_profiles')
+      .update({ is_active: isActive })
+      .eq('id', userId);
+
+    if (!error) updated++;
+  }
+
+  console.log(`  ${updated} user profiles updated (${elapsed(start)})`);
+  return { inserted: updated, errors: 0 };
+}
+
+// ============================================================================
 // Main
 // ============================================================================
 
@@ -482,6 +519,7 @@ async function main() {
   results.activities = await syncActivities(pool);
   results.placements = await syncPlacements(pool);
   results.submissionStatusLog = await syncSubmissionStatusLog(pool);
+  results.userActiveStatus = await syncUserActiveStatus(pool);
 
   // Close SQL Server connection
   await pool.close();

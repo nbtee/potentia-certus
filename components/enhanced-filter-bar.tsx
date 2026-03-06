@@ -210,6 +210,7 @@ export function EnhancedFilterBar() {
           <AnimatePresence>
             {hasSavedView && (
               <motion.div
+                key="saved-view"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
@@ -224,6 +225,7 @@ export function EnhancedFilterBar() {
             )}
             {hasActiveFilters && (
               <motion.div
+                key="filters-active"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}

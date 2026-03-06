@@ -26,7 +26,7 @@ async function requireAdminOrManager(): Promise<string | null> {
 }
 
 // =============================================================================
-// Get Ingestion Status (latest run per source_table)
+// Get Ingestion Status (latest run per target_table)
 // =============================================================================
 
 export async function getIngestionStatus(): Promise<ActionResult<IngestionRun[]>> {
@@ -35,24 +35,23 @@ export async function getIngestionStatus(): Promise<ActionResult<IngestionRun[]>
 
   const supabase = await createClient();
 
-  // Get latest run per source_table using distinct on
   const { data, error } = await supabase
     .from('ingestion_runs')
     .select('*')
-    .order('source_table')
+    .order('target_table')
     .order('started_at', { ascending: false });
 
   if (error) return { error: error.message };
 
-  // Group by source_table, take latest
-  const latestBySource = new Map<string, IngestionRun>();
+  // Group by target_table, take latest
+  const latestByTarget = new Map<string, IngestionRun>();
   for (const run of (data ?? []) as IngestionRun[]) {
-    if (!latestBySource.has(run.source_table)) {
-      latestBySource.set(run.source_table, run);
+    if (!latestByTarget.has(run.target_table)) {
+      latestByTarget.set(run.target_table, run);
     }
   }
 
-  return { data: Array.from(latestBySource.values()) };
+  return { data: Array.from(latestByTarget.values()) };
 }
 
 // =============================================================================
@@ -78,35 +77,93 @@ export async function listIngestionRuns(
 }
 
 // =============================================================================
-// Trigger Manual Sync (placeholder — inserts a running record)
+// Trigger Manual Sync via Azure Function HTTP trigger
 // =============================================================================
 
 export async function triggerManualSync(
-  sourceTable: string
-): Promise<ActionResult<IngestionRun>> {
+  tables?: string[]
+): Promise<ActionResult<{ message: string }>> {
   const userId = await requireAdminOrManager();
   if (!userId) return { error: 'Admin or manager access required' };
 
-  const supabase = await createClient();
+  const functionUrl = process.env.AZURE_SYNC_FUNCTION_URL;
+  const functionKey = process.env.AZURE_SYNC_FUNCTION_KEY;
 
-  const { data, error } = await supabase
-    .from('ingestion_runs')
-    .insert({
-      run_type: 'incremental_sync',
-      source_table: sourceTable,
-      target_table: sourceTable,
-      status: 'running',
-      started_at: new Date().toISOString(),
-    })
-    .select()
-    .single();
+  if (!functionUrl || !functionKey) {
+    return { error: 'Azure sync function not configured. Set AZURE_SYNC_FUNCTION_URL and AZURE_SYNC_FUNCTION_KEY.' };
+  }
 
-  if (error) return { error: error.message };
+  try {
+    const response = await fetch(functionUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-functions-key': functionKey,
+      },
+      body: JSON.stringify({
+        ...(tables && { tables }),
+        full_sync: false,
+      }),
+    });
 
-  await writeAuditLog('ingestion.manual_trigger', 'ingestion_runs', data.id, null, {
-    source_table: sourceTable,
-  });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      return { error: (body as Record<string, string>).error || `Azure Function returned ${response.status}` };
+    }
 
+    await writeAuditLog('ingestion.manual_trigger', 'ingestion_runs', undefined, null, {
+      tables: tables ?? ['all'],
+      triggered_by: userId,
+    });
 
-  return { data: data as IngestionRun };
+    return { data: { message: `Sync triggered for ${tables?.join(', ') || 'all tables'}` } };
+  } catch (err) {
+    return { error: `Failed to reach Azure Function: ${err instanceof Error ? err.message : 'Unknown error'}` };
+  }
+}
+
+// =============================================================================
+// Trigger Full Re-sync (all tables, no watermark)
+// =============================================================================
+
+export async function triggerFullResync(
+  tables?: string[]
+): Promise<ActionResult<{ message: string }>> {
+  const userId = await requireAdminOrManager();
+  if (!userId) return { error: 'Admin or manager access required' };
+
+  const functionUrl = process.env.AZURE_SYNC_FUNCTION_URL;
+  const functionKey = process.env.AZURE_SYNC_FUNCTION_KEY;
+
+  if (!functionUrl || !functionKey) {
+    return { error: 'Azure sync function not configured.' };
+  }
+
+  try {
+    const response = await fetch(functionUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-functions-key': functionKey,
+      },
+      body: JSON.stringify({
+        ...(tables && { tables }),
+        full_sync: true,
+      }),
+    });
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      return { error: (body as Record<string, string>).error || `Azure Function returned ${response.status}` };
+    }
+
+    await writeAuditLog('ingestion.full_resync', 'ingestion_runs', undefined, null, {
+      tables: tables ?? ['all'],
+      triggered_by: userId,
+    });
+
+    return { data: { message: `Full re-sync triggered for ${tables?.join(', ') || 'all tables'}` } };
+  } catch (err) {
+    return { error: `Failed to reach Azure Function: ${err instanceof Error ? err.message : 'Unknown error'}` };
+  }
 }

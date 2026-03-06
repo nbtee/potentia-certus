@@ -29,12 +29,21 @@ const ALL_ACTIVITY_TYPES = TARGET_CATEGORIES.flatMap((c) => c.activityTypes);
 const INTERVIEW_STATUSES = new Set(['Client Interview 1', 'Client Interview 2', 'Client Interview Final']);
 const CONVERSION_STATUSES = ['Submittal', 'Client Interview 1', 'Client Interview 2', 'Client Interview Final', 'Placed'];
 
-function calcContractRevenue(gpPerHour: number, startDate: string | null, endDate: string | null): number {
+function calcContractRevenue(
+  gpPerHour: number,
+  startDate: string | null,
+  endDate: string | null,
+  hoursPerDay?: number | null,
+  workingDaysPerWeek?: number | null
+): number {
   if (!startDate || !endDate) return 0;
   const start = new Date(startDate);
   const end = new Date(endDate);
-  const days = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
-  return (gpPerHour * 8 * days) / 1000;
+  const calendarDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+  const hpd = hoursPerDay || 8;
+  const dpw = workingDaysPerWeek || 0;
+  const workingDays = dpw > 0 ? calendarDays * (dpw / 7) : calendarDays;
+  return (gpPerHour * hpd * workingDays) / 1000;
 }
 
 /**
@@ -120,7 +129,7 @@ export async function getMyPerformance(
     // 3. Placements for revenue + placement count
     supabase
       .from('placements')
-      .select('revenue_type, fee_amount, gp_per_hour, start_date, end_date, placement_date')
+      .select('revenue_type, fee_amount, gp_per_hour, start_date, end_date, placement_date, hours_per_day, working_days_per_week')
       .eq('consultant_id', user.id)
       .gte('placement_date', rangeStart)
       .lte('placement_date', rangeEnd),
@@ -196,7 +205,7 @@ export async function getMyPerformance(
     if (p.revenue_type === 'permanent') {
       amount = Number(p.fee_amount) || 0;
     } else {
-      amount = calcContractRevenue(Number(p.gp_per_hour) || 0, p.start_date, p.end_date);
+      amount = calcContractRevenue(Number(p.gp_per_hour) || 0, p.start_date, p.end_date, p.hours_per_day, p.working_days_per_week);
     }
     revenueLookup.set(ms, (revenueLookup.get(ms) ?? 0) + amount);
   }

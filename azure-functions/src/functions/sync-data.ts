@@ -8,23 +8,125 @@ import {
   syncJobOrders,
 } from '../shared/sync-tables.js';
 import { syncDeletedNotes } from '../shared/deleted-notes.js';
-import type { SyncResult } from '../shared/types.js';
+import type { SyncResult, LookupMaps } from '../shared/types.js';
+import type sql from 'mssql';
+
+// ---------------------------------------------------------------------------
+// Table sync definitions — each gets its own watermark
+// ---------------------------------------------------------------------------
+
+interface SyncTask {
+  name: string;
+  targetTable: string;
+  sourceTable: string;
+  alwaysFullSync?: boolean;
+  run: (
+    pool: sql.ConnectionPool,
+    lookups: LookupMaps,
+    since: string | null
+  ) => Promise<SyncResult[]>;
+}
+
+const SYNC_TASKS: SyncTask[] = [
+  {
+    name: 'activities',
+    targetTable: 'activities',
+    sourceTable: 'TargetJobsDB.Notes',
+    run: async (pool, lookups, since) => {
+      const activityResult = await syncActivities(pool, lookups, since);
+      const deleteResult = await syncDeletedNotes(pool, since);
+      return [activityResult, deleteResult];
+    },
+  },
+  {
+    name: 'submissions',
+    targetTable: 'submission_status_log',
+    sourceTable: 'TargetJobsDB.SubmissionHistory',
+    run: async (pool, lookups, since) => [
+      await syncSubmissions(pool, lookups, since),
+    ],
+  },
+  {
+    name: 'placements',
+    targetTable: 'placements',
+    sourceTable: 'TargetJobsDB.Placements',
+    alwaysFullSync: true, // No modification timestamp — always re-sync all (~550 rows)
+    run: async (pool, lookups, since) => [
+      await syncPlacements(pool, lookups, since),
+    ],
+  },
+  {
+    name: 'job_orders',
+    targetTable: 'job_orders',
+    sourceTable: 'TargetJobsDB.JobOrders',
+    run: async (pool, lookups, since) => [
+      await syncJobOrders(pool, lookups, since),
+    ],
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Stale run cleanup — mark runs stuck in "running" for > 15 min as "stale"
+// ---------------------------------------------------------------------------
+
+async function cleanupStaleRuns(): Promise<number> {
+  const supabase = getServiceClient();
+  const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+
+  const { data } = await supabase
+    .from('ingestion_runs')
+    .update({
+      status: 'stale',
+      error_message: 'Run exceeded 15-minute timeout — marked stale automatically',
+      completed_at: new Date().toISOString(),
+    })
+    .eq('status', 'running')
+    .lt('started_at', cutoff)
+    .select('id');
+
+  return data?.length ?? 0;
+}
+
+// ---------------------------------------------------------------------------
+// Per-table watermark — last successful completed_at for this target_table
+// ---------------------------------------------------------------------------
+
+async function getTableWatermark(targetTable: string): Promise<string | null> {
+  const supabase = getServiceClient();
+
+  const { data } = await supabase
+    .from('ingestion_runs')
+    .select('completed_at')
+    .eq('target_table', targetTable)
+    .in('status', ['completed'])
+    .order('completed_at', { ascending: false })
+    .limit(1);
+
+  return data?.[0]?.completed_at ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Main sync orchestrator
+// ---------------------------------------------------------------------------
 
 async function syncData(timer: Timer, context: InvocationContext): Promise<void> {
   context.log('Incremental sync triggered', timer.isPastDue ? '(past due)' : '');
 
   const supabase = getServiceClient();
-  const runStart = new Date().toISOString();
 
-  // Concurrency guard: check for running sync less than 10 min old
+  // 1. Clean up stale runs
+  const staleCount = await cleanupStaleRuns();
+  if (staleCount > 0) {
+    context.log(`Cleaned up ${staleCount} stale run(s)`);
+  }
+
+  // 2. Concurrency guard: check for running sync less than 10 min old
   const { data: runningSync } = await supabase
     .from('ingestion_runs')
     .select('id, started_at')
     .eq('status', 'running')
-    .gte(
-      'started_at',
-      new Date(Date.now() - 10 * 60 * 1000).toISOString()
-    )
+    .eq('run_type', 'incremental_sync')
+    .gte('started_at', new Date(Date.now() - 10 * 60 * 1000).toISOString())
     .limit(1);
 
   if (runningSync && runningSync.length > 0) {
@@ -32,99 +134,93 @@ async function syncData(timer: Timer, context: InvocationContext): Promise<void>
     return;
   }
 
-  // Find last successful sync timestamp
-  const { data: lastRun } = await supabase
-    .from('ingestion_runs')
-    .select('completed_at')
-    .in('run_type', ['incremental_sync', 'full_sync'])
-    .in('status', ['completed', 'partial'])
-    .order('completed_at', { ascending: false })
-    .limit(1);
-
-  const since = lastRun?.[0]?.completed_at || null;
-  context.log(`Incremental sync since: ${since || 'FULL (no previous run)'}`);
-
-  // Log run start
-  const { data: runRecord } = await supabase
-    .from('ingestion_runs')
-    .insert({
-      run_type: 'incremental_sync',
-      source_table: 'TargetJobsDB.*',
-      target_table: '*',
-      status: 'running',
-      started_at: runStart,
-    })
-    .select('id')
-    .single();
-
-  const runId = runRecord?.id;
-  const results: SyncResult[] = [];
-
   try {
-    // Connect to SQL Server
+    // 3. Connect to SQL Server + build lookup maps
     const pool = await getPool();
-
-    // Build lookup maps
     context.log('Building lookup maps...');
     const lookups = await buildLookupMaps();
 
-    // Run syncs sequentially (FK order matters)
-    context.log('Syncing activities...');
-    results.push(await syncActivities(pool, lookups, since));
+    // 4. Run each table sync with its own watermark
+    for (const task of SYNC_TASKS) {
+      const since = task.alwaysFullSync ? null : await getTableWatermark(task.targetTable);
+      context.log(`Syncing ${task.name} (since: ${since || 'FULL'})...`);
 
-    context.log('Syncing deleted notes...');
-    results.push(await syncDeletedNotes(pool, since));
-
-    context.log('Syncing submissions...');
-    results.push(await syncSubmissions(pool, lookups, since));
-
-    context.log('Syncing placements...');
-    results.push(await syncPlacements(pool, lookups, since));
-
-    context.log('Syncing job orders...');
-    results.push(await syncJobOrders(pool, lookups, since));
-
-    // Determine overall status
-    const totalErrors = results.reduce((sum, r) => sum + r.errors, 0);
-    const totalProcessed = results.reduce((sum, r) => sum + r.processed, 0);
-    const totalInserted = results.reduce((sum, r) => sum + r.inserted, 0);
-    const status = totalErrors === 0 ? 'completed' : 'partial';
-
-    // Update run record
-    if (runId) {
-      await supabase
+      // Create per-table ingestion_run record
+      const runStart = new Date().toISOString();
+      const { data: runRecord } = await supabase
         .from('ingestion_runs')
-        .update({
-          records_processed: totalProcessed,
-          records_inserted: totalInserted,
-          records_failed: totalErrors,
-          status,
-          completed_at: new Date().toISOString(),
-          metadata: { tables: results },
+        .insert({
+          run_type: 'incremental_sync',
+          source_table: task.sourceTable,
+          target_table: task.targetTable,
+          status: 'running',
+          started_at: runStart,
         })
-        .eq('id', runId);
-    }
+        .select('id')
+        .single();
 
-    context.log(
-      `Sync ${status}: ${totalProcessed} processed, ${totalInserted} inserted, ${totalErrors} errors (${Date.now() - new Date(runStart).getTime()}ms)`
-    );
+      const runId = runRecord?.id;
+
+      try {
+        const results = await task.run(pool, lookups, since);
+
+        const totalProcessed = results.reduce((s, r) => s + r.processed, 0);
+        const totalInserted = results.reduce((s, r) => s + r.inserted, 0);
+        const totalErrors = results.reduce((s, r) => s + r.errors, 0);
+        const totalDuration = results.reduce((s, r) => s + r.duration_ms, 0);
+        const status = totalErrors === 0 ? 'completed' : 'partial';
+
+        if (runId) {
+          await supabase
+            .from('ingestion_runs')
+            .update({
+              records_processed: totalProcessed,
+              records_inserted: totalInserted,
+              records_failed: totalErrors,
+              status,
+              completed_at: new Date().toISOString(),
+              metadata: { subtasks: results },
+            })
+            .eq('id', runId);
+        }
+
+        context.log(
+          `  ${task.name} ${status}: ${totalProcessed} processed, ${totalInserted} upserted, ${totalErrors} errors (${totalDuration}ms)`
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        context.error(`  ${task.name} FAILED: ${message}`);
+
+        if (runId) {
+          await supabase
+            .from('ingestion_runs')
+            .update({
+              status: 'failed',
+              error_message: message,
+              completed_at: new Date().toISOString(),
+            })
+            .eq('id', runId);
+        }
+        // Continue to next table — don't let one failure stop the rest
+      }
+    }
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : 'Unknown error';
-    context.error('Sync failed:', message);
+    // Connection-level failure (SQL Server down, lookup build failed)
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    context.error('Sync infrastructure failed:', message);
 
-    // Update run record with failure
-    if (runId) {
-      await supabase
-        .from('ingestion_runs')
-        .update({
-          status: 'failed',
-          error_message: message,
-          completed_at: new Date().toISOString(),
-          metadata: { tables: results },
-        })
-        .eq('id', runId);
-    }
+    // Log a single failed run so we know the timer fired
+    await supabase
+      .from('ingestion_runs')
+      .insert({
+        run_type: 'incremental_sync',
+        source_table: '*',
+        target_table: '*',
+        status: 'failed',
+        error_message: message,
+        started_at: new Date().toISOString(),
+        completed_at: new Date().toISOString(),
+      });
   } finally {
     await closePool().catch(() => {});
   }

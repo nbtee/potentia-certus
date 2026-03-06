@@ -10,6 +10,7 @@ import {
   Settings,
   Database,
   TrendingUp,
+  BarChart3,
   Shield,
   Network,
   Target,
@@ -63,6 +64,12 @@ const navigation: NavItem[] = [
     name: 'My Performance',
     href: '/performance',
     icon: TrendingUp,
+    roles: ['consultant', 'team_lead', 'manager', 'admin'],
+  },
+  {
+    name: 'Pipeline',
+    href: '/pipeline',
+    icon: BarChart3,
     roles: ['consultant', 'team_lead', 'manager', 'admin'],
   },
   {

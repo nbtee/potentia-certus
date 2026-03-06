@@ -41,7 +41,6 @@ function calculatePlacementRevenue(row: Record<string, unknown>): number {
   if (revenueType === 'permanent') {
     return Number(row.fee_amount) || 0;
   }
-  // Contract: gp_per_hour × 8 hours/day × calendar days
   const gpPerHour = Number(row.gp_per_hour) || 0;
   const startDate = row.start_date as string | null;
   const endDate = row.end_date as string | null;
@@ -49,7 +48,10 @@ function calculatePlacementRevenue(row: Record<string, unknown>): number {
   const start = new Date(startDate);
   const end = new Date(endDate);
   const calendarDays = Math.max(0, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
-  return gpPerHour * 8 * calendarDays;
+  const hoursPerDay = Number(row.hours_per_day) || 8;
+  const daysPerWeek = Number(row.working_days_per_week) || 0;
+  const workingDays = daysPerWeek > 0 ? calendarDays * (daysPerWeek / 7) : calendarDays;
+  return gpPerHour * hoursPerDay * workingDays;
 }
 
 // ============================================================================
@@ -86,7 +88,7 @@ function useRevenueLeaderboard(dateRange?: DateRange, limit: number = 10) {
       let query = supabase
         .from('placements')
         .select(`
-          id, consultant_id, placement_date, revenue_type, fee_amount, gp_per_hour, start_date, end_date,
+          id, consultant_id, placement_date, revenue_type, fee_amount, gp_per_hour, start_date, end_date, hours_per_day, working_days_per_week,
           user_profiles(display_name, first_name, last_name),
           candidates(first_name, last_name),
           job_orders(title, client_corporations(name))
