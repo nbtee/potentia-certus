@@ -137,7 +137,7 @@ export async function getPipelineData(
     fetchAllRows(
       supabase
         .from('job_orders')
-        .select('id, employment_type, consultant_id, date_last_modified, status, pay_rate, bill_rate')
+        .select('id, employment_type, consultant_id, date_last_modified, status, pay_rate, bill_rate, salary_unit')
     ),
 
     // 6. User profiles (include title to filter out non-consulting roles)
@@ -190,13 +190,17 @@ export async function getPipelineData(
   const closedJobIdSet = new Set<string>(); // jobs with terminal status — not active pipeline
   const openJobsByConsultant = new Map<string, Set<string>>(); // consultant → open job UUIDs
   const jobGpPerHourMap = new Map<string, number>(); // job UUID → GP/hr from bill_rate - pay_rate
-  const jobOrders = jobOrdersRaw as { id: string; employment_type: string | null; consultant_id: string | null; date_last_modified: string | null; status: string | null; pay_rate: number | null; bill_rate: number | null }[];
+  const jobOrders = jobOrdersRaw as { id: string; employment_type: string | null; consultant_id: string | null; date_last_modified: string | null; status: string | null; pay_rate: number | null; bill_rate: number | null; salary_unit: string | null }[];
   for (const jo of jobOrders) {
     if (jo.employment_type) jobTypeMap.set(jo.id, jo.employment_type);
     if (jo.status && CLOSED_JOB_STATUSES.has(jo.status)) closedJobIdSet.add(jo.id);
     // Build per-job GP/hr from actual rates (bill_rate - pay_rate)
+    // If salary_unit is daily ("Per Day"), divide by 8 to get hourly rate
     if (jo.bill_rate != null && jo.pay_rate != null && jo.bill_rate > 0 && jo.pay_rate > 0) {
-      const gphr = jo.bill_rate - jo.pay_rate;
+      let gphr = jo.bill_rate - jo.pay_rate;
+      if (jo.salary_unit && jo.salary_unit.toLowerCase().includes('day')) {
+        gphr = gphr / 8;
+      }
       if (gphr > 0) jobGpPerHourMap.set(jo.id, gphr);
     }
     // Track jobs with open/accepting status per consultant
@@ -713,7 +717,7 @@ export async function getPipelineDrillDown(
       id, bullhorn_submission_id, status_to, detected_at, consultant_id, candidate_id, job_order_id,
       user_profiles(display_name),
       candidates(first_name, last_name),
-      job_orders(title, employment_type, pay_rate, bill_rate, client_corporations(name))
+      job_orders(title, employment_type, pay_rate, bill_rate, salary_unit, client_corporations(name))
     `)
     .in('id', subIds);
 
@@ -740,11 +744,20 @@ export async function getPipelineDrillDown(
     const probability = probabilities[r.status_to] ?? 0;
     const isContract = empType === 'Contract';
     // Use actual job GP/hr (bill_rate - pay_rate) when available
+    // If salary_unit is daily, divide by 8 to get hourly
     let value: number;
     if (isContract) {
       const billRate = Number(jobOrder?.bill_rate) || 0;
       const payRate = Number(jobOrder?.pay_rate) || 0;
-      value = (billRate > 0 && payRate > 0) ? billRate - payRate : avgGpPerHourRate;
+      if (billRate > 0 && payRate > 0) {
+        value = billRate - payRate;
+        const salaryUnit = jobOrder?.salary_unit as string | undefined;
+        if (salaryUnit && salaryUnit.toLowerCase().includes('day')) {
+          value = value / 8;
+        }
+      } else {
+        value = avgGpPerHourRate;
+      }
     } else {
       value = avgPermFee;
     }
@@ -882,7 +895,7 @@ export async function getConsultantJobs(
       .from('job_orders')
       .select(`
         id, title, employment_type, status, date_added, date_last_modified,
-        pay_rate, bill_rate,
+        pay_rate, bill_rate, salary_unit,
         client_corporations(name)
       `)
       .eq('consultant_id', consultantId)
@@ -1014,13 +1027,19 @@ export async function getConsultantJobs(
       : j.client_corporations as Record<string, unknown> | null;
 
     // GP/hr: use placement actuals for placed jobs, otherwise job order estimate
+    // If salary_unit is daily, divide by 8 to get hourly
     let gpPerHour: number | null = null;
     if (placementGpPerHour.has(j.id)) {
       gpPerHour = placementGpPerHour.get(j.id)!;
     } else {
       const billRate = Number(j.bill_rate) || 0;
       const payRate = Number(j.pay_rate) || 0;
-      gpPerHour = (billRate > 0 && payRate > 0) ? billRate - payRate : null;
+      if (billRate > 0 && payRate > 0) {
+        gpPerHour = billRate - payRate;
+        if (j.salary_unit && j.salary_unit.toLowerCase().includes('day')) {
+          gpPerHour = gpPerHour / 8;
+        }
+      }
     }
 
     // Fee: use placement actuals for placed perm jobs

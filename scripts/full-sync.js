@@ -245,7 +245,7 @@ async function syncJobOrders(pool) {
 
   const result = await pool.request().query(
     `SELECT Id, Title, DateAdded, DateLastModified, ClientCorporationId, OwnerId, employmentType, Status,
-            payRate, clientBillRate, salary
+            payRate, clientBillRate, salary, salaryUnit
      FROM TargetJobsDB.JobOrders`
   );
 
@@ -270,6 +270,7 @@ async function syncJobOrders(pool) {
       pay_rate: r.payRate ?? null,
       bill_rate: r.clientBillRate ?? null,
       salary: r.salary ?? null,
+      salary_unit: r.salaryUnit ?? null,
       synced_at: new Date().toISOString(),
     };
   });

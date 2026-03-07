@@ -469,19 +469,20 @@ async function enrichNotes(bh, pool) {
 
 async function enrichJobOrders(bh, pool) {
   const start = Date.now();
-  console.log('\n[3/5] Enriching JobOrders (status, payRate, clientBillRate, salary)...');
+  console.log('\n[3/5] Enriching JobOrders (status, payRate, clientBillRate, salary, salaryUnit)...');
 
   await ensureColumn(pool, 'TargetJobsDB', 'JobOrders', 'Status', 'NVARCHAR(200)');
   await ensureColumn(pool, 'TargetJobsDB', 'JobOrders', 'payRate', 'DECIMAL(10,2)');
   await ensureColumn(pool, 'TargetJobsDB', 'JobOrders', 'clientBillRate', 'DECIMAL(10,2)');
   await ensureColumn(pool, 'TargetJobsDB', 'JobOrders', 'salary', 'DECIMAL(12,2)');
+  await ensureColumn(pool, 'TargetJobsDB', 'JobOrders', 'salaryUnit', 'NVARCHAR(50)');
 
   const idResult = await pool.request().query('SELECT Id FROM TargetJobsDB.JobOrders');
   const ids = idResult.recordset.map((r) => r.Id);
   console.log(`  ${ids.length} job orders to enrich`);
   if (ids.length === 0) return { updated: 0 };
 
-  const entities = await bhMultiFetch(bh, 'JobOrder', ids, ['id', 'status', 'payRate', 'clientBillRate', 'salary']);
+  const entities = await bhMultiFetch(bh, 'JobOrder', ids, ['id', 'status', 'payRate', 'clientBillRate', 'salary', 'salaryUnit']);
 
   const rows = Array.from(entities.values()).map((e) => ({
     id: e.id,
@@ -489,6 +490,7 @@ async function enrichJobOrders(bh, pool) {
     payRate: e.payRate ?? null,
     clientBillRate: e.clientBillRate ?? null,
     salary: e.salary ?? null,
+    salaryUnit: e.salaryUnit ?? null,
   }));
 
   const updated = await bulkUpdate(pool, 'TargetJobsDB.JobOrders', 'Id', rows, [
@@ -496,6 +498,7 @@ async function enrichJobOrders(bh, pool) {
     { src: 'payRate', dest: 'payRate', type: 'DECIMAL' },
     { src: 'clientBillRate', dest: 'clientBillRate', type: 'DECIMAL' },
     { src: 'salary', dest: 'salary', type: 'DECIMAL' },
+    { src: 'salaryUnit', dest: 'salaryUnit', type: 'NVARCHAR' },
   ]);
 
   console.log(`  ${updated} job orders updated (${elapsed(start)})`);

@@ -257,7 +257,7 @@ export async function syncJobOrders(
 
   let query = `
     SELECT Id, Title, DateAdded, DateLastModified, ClientCorporationId, OwnerId, employmentType, Status,
-           payRate, clientBillRate, salary
+           payRate, clientBillRate, salary, salaryUnit
     FROM TargetJobsDB.JobOrders`;
 
   if (since) {
@@ -293,6 +293,7 @@ export async function syncJobOrders(
       pay_rate: (r.payRate as number) ?? null,
       bill_rate: (r.clientBillRate as number) ?? null,
       salary: (r.salary as number) ?? null,
+      salary_unit: (r.salaryUnit as string) ?? null,
       synced_at: new Date().toISOString(),
     };
   });
